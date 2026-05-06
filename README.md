@@ -82,3 +82,16 @@ Notes:
 
 - Pour un test manuel réel, LM Studio doit être lancé avec un modèle configuré via `VIVI_LMSTUDIO_MODEL`.
 - Les tests automatisés (`pytest -q`) utilisent des mocks et ne nécessitent pas LM Studio réel.
+
+## Endpoint knowledge search MVP (FEAT-04)
+
+Recherche lexicale minimale dans le vault Obsidian:
+
+```bash
+curl "http://127.0.0.1:8000/knowledge/search?q=architecture&top_k=5"
+```
+
+Notes:
+
+- Le RAG de FEAT-04 est lexical (pas d'embeddings, pas de vector DB).
+- Le RAG n'est pas encore branché sur `POST /chat` (prévu FEAT-05).

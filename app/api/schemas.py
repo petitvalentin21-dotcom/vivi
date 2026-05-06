@@ -81,3 +81,19 @@ class ChatResponse(BaseModel):
     sources: list[Any] = Field(default_factory=list)
     runtime: ChatRuntimeInfo
     error: dict[str, Any] | None = None
+
+
+class KnowledgeSearchResult(BaseModel):
+    source_id: str
+    path: str
+    title: str
+    section: str
+    score: float
+    excerpt: str
+
+
+class KnowledgeSearchResponse(BaseModel):
+    query: str
+    results: list[KnowledgeSearchResult]
+    count: int
+    mode: str

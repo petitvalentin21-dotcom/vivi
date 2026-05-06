@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Query
 
 from app import __version__
 from app.api.auth import require_api_key
 from app.api.errors import ApiError, api_error_handler, unhandled_error_handler
-from app.api.schemas import ChatRequest, ChatResponse, HealthResponse, RuntimeInfoResponse
+from app.api.schemas import ChatRequest, ChatResponse, HealthResponse, KnowledgeSearchResponse, RuntimeInfoResponse
 from app.config import Settings, ensure_runtime_dirs, load_settings
+from app.knowledge import load_markdown_notes, retrieve_lexical, split_into_chunks
 from app.llm import LMStudioClient
 from app.runtime.status import build_runtime_info
 from app.sessions.store import SessionStore
@@ -38,6 +39,37 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         payload = build_runtime_info(cfg)
         return RuntimeInfoResponse(**payload.__dict__)
 
+    @app.get("/knowledge/search", response_model=KnowledgeSearchResponse)
+    def knowledge_search(q: str = Query(...), top_k: int | None = Query(default=None)) -> KnowledgeSearchResponse:
+        query = q.strip()
+        if not query:
+            raise ApiError(
+                status_code=400,
+                code="invalid_request",
+                message="Query must not be empty.",
+                recovery_hint="Provide a non-empty q parameter.",
+            )
+
+        exists, notes, error = load_markdown_notes(cfg.knowledge_vault_path)
+        if not exists:
+            raise ApiError(
+                status_code=404,
+                code="vault_not_found",
+                message=error or "Knowledge vault not found.",
+                recovery_hint="Set VIVI_KNOWLEDGE_VAULT_PATH to a valid vault directory.",
+            )
+
+        chunks = split_into_chunks(notes)
+        selected_top_k = top_k if top_k is not None else cfg.rag_top_k
+        results = retrieve_lexical(query, chunks, selected_top_k)
+
+        return KnowledgeSearchResponse(
+            query=query,
+            results=[item.__dict__ for item in results],
+            count=len(results),
+            mode="lexical",
+        )
+
     @app.post("/chat", response_model=ChatResponse, dependencies=[Depends(require_api_key(cfg))])
     def chat(payload: ChatRequest) -> ChatResponse:
         message = payload.message.strip()
@@ -62,7 +94,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise ApiError(
                 status_code=400,
                 code="invalid_request",
-                message="RAG is not available yet. It will be added in FEAT-04.",
+                message="RAG is not available yet. It will be added in FEAT-05.",
                 recovery_hint="Retry with use_rag=false.",
             )
 
@@ -130,3 +162,4 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
 
 app = create_app()
+
