@@ -95,3 +95,19 @@ Notes:
 
 - Le RAG de FEAT-04 est lexical (pas d'embeddings, pas de vector DB).
 - Le RAG n'est pas encore branché sur `POST /chat` (prévu FEAT-05).
+
+## Chat documentaire MVP (FEAT-05)
+
+Exemple mode document avec RAG lexical:
+
+```bash
+curl -X POST http://127.0.0.1:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Quels sont les objectifs du MVP ?","mode":"document","max_sources":3}'
+```
+
+Notes:
+
+- `mode=document` (ou `use_rag=true`) active le RAG lexical Obsidian.
+- Les sources utilisées sont retournées dans `sources`.
+- Les tests automatisés restent mockés et ne nécessitent pas LM Studio réel.

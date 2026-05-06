@@ -19,6 +19,13 @@ _SYSTEM_PROMPT = (
     "Aucun outil externe n'est disponible."
 )
 
+_RAG_PROMPT = (
+    "Utilise le contexte documentaire si pertinent. "
+    "N'invente pas de sources. "
+    "Si le contexte est insuffisant, dis-le clairement. "
+    "Reponds en francais si l'utilisateur parle francais."
+)
+
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     cfg = settings or load_settings()
@@ -82,35 +89,58 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
 
         mode = str(payload.mode or "chat").strip().lower()
-        if mode != "chat":
+        if mode not in {"chat", "document"}:
             raise ApiError(
                 status_code=400,
                 code="invalid_request",
-                message="Mode is not supported in FEAT-03. Use mode='chat'.",
-                recovery_hint="Retry with mode='chat'.",
+                message="Mode is not supported. Use mode='chat' or mode='document'.",
+                recovery_hint="Retry with mode='chat' or mode='document'.",
             )
 
-        if payload.use_rag:
-            raise ApiError(
-                status_code=400,
-                code="invalid_request",
-                message="RAG is not available yet. It will be added in FEAT-05.",
-                recovery_hint="Retry with use_rag=false.",
-            )
+        rag_used = payload.use_rag if payload.use_rag is not None else False
+        if mode == "document":
+            rag_used = True
 
         session_id = str(payload.session_id or "").strip()
         if not session_id:
             session_id = session_store.create_session()
-        else:
-            if session_store.get_session(session_id) is None:
+        elif session_store.get_session(session_id) is None:
+            raise ApiError(
+                status_code=404,
+                code="session_not_found",
+                message="Session not found.",
+                recovery_hint="Create a new session or use a known session_id.",
+            )
+
+        sources = []
+        rag_context = ""
+        if rag_used:
+            exists, notes, error = load_markdown_notes(cfg.knowledge_vault_path)
+            if not exists:
                 raise ApiError(
                     status_code=404,
-                    code="session_not_found",
-                    message="Session not found.",
-                    recovery_hint="Create a new session or use a known session_id.",
+                    code="vault_not_found",
+                    message=error or "Knowledge vault not found.",
+                    recovery_hint="Set VIVI_KNOWLEDGE_VAULT_PATH to a valid vault directory.",
                 )
 
+            chunks = split_into_chunks(notes)
+            selected_top_k = payload.max_sources if payload.max_sources is not None else cfg.rag_top_k
+            sources = retrieve_lexical(message, chunks, selected_top_k)
+            rag_context = _build_rag_context(sources)
+
         messages = [{"role": "system", "content": _SYSTEM_PROMPT}]
+        if rag_used:
+            if rag_context:
+                messages.append({"role": "system", "content": f"{_RAG_PROMPT}\n\n{rag_context}"})
+            else:
+                messages.append(
+                    {
+                        "role": "system",
+                        "content": f"{_RAG_PROMPT}\n\nAucune source Obsidian pertinente n'a ete trouvee.",
+                    }
+                )
+
         messages.extend(session_store.last_messages_for_prompt(session_id, limit=4))
         messages.append({"role": "user", "content": message})
 
@@ -152,14 +182,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             answer=answer,
             session_id=session_id,
             provider={"name": "lmstudio", "model": completion.model},
-            mode="chat",
-            sources=[],
-            runtime={"rag_used": False, "sources_count": 0, "external_call_used": False},
+            mode=mode,
+            sources=[item.__dict__ for item in sources],
+            runtime={"rag_used": rag_used, "sources_count": len(sources), "external_call_used": False},
             error=None,
         )
 
     return app
 
 
-app = create_app()
+def _build_rag_context(sources: list) -> str:
+    if not sources:
+        return ""
 
+    blocks: list[str] = ["Contexte documentaire Obsidian :"]
+    for idx, src in enumerate(sources, start=1):
+        blocks.append(f"[{idx}] {src.title} - {src.path} - {src.section}")
+        blocks.append(str(src.excerpt).strip())
+        blocks.append("")
+    return "\n".join(blocks).strip()
+
+
+app = create_app()

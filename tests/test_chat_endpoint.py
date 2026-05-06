@@ -51,19 +51,9 @@ def test_chat_empty_message_returns_safe_error(tmp_path: Path) -> None:
     assert response.json()["error"]["code"] == "invalid_request"
 
 
-def test_chat_use_rag_true_returns_clear_error(tmp_path: Path) -> None:
-    client = TestClient(create_app(_settings(tmp_path)))
-    response = client.post("/chat", json={"message": "Salut", "use_rag": True})
-
-    assert response.status_code == 400
-    payload = response.json()
-    assert payload["error"]["code"] == "invalid_request"
-    assert "RAG" in payload["error"]["message"]
-
-
 def test_chat_mode_not_supported_returns_safe_error(tmp_path: Path) -> None:
     client = TestClient(create_app(_settings(tmp_path)))
-    response = client.post("/chat", json={"message": "Salut", "mode": "document"})
+    response = client.post("/chat", json={"message": "Salut", "mode": "diagnostic"})
 
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "invalid_request"

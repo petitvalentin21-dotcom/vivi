@@ -57,9 +57,10 @@ class ChatRequest(BaseModel):
     message: str
     session_id: str | None = None
     mode: str = "chat"
-    use_rag: bool = False
+    use_rag: bool | None = None
     temperature: float | None = None
     max_tokens: int | None = None
+    max_sources: int | None = None
 
 
 class ChatProviderInfo(BaseModel):
