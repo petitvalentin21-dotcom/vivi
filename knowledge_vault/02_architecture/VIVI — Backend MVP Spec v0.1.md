@@ -208,7 +208,7 @@ Variables recommandées :
   - rôle : base URL LM Studio OpenAI-compatible
 
 - VIVI_LMSTUDIO_MODEL
-  - défaut : vide
+  - défaut : google/gemma-4-e4b
   - rôle : modèle à utiliser
 
 - VIVI_LLM_TIMEOUT_SECONDS

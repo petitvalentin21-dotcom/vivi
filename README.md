@@ -111,3 +111,54 @@ Notes:
 - `mode=document` (ou `use_rag=true`) active le RAG lexical Obsidian.
 - Les sources utilisées sont retournées dans `sources`.
 - Les tests automatisés restent mockés et ne nécessitent pas LM Studio réel.
+
+## Smoke backend local (FEAT-06)
+
+Prérequis:
+
+- backend lancé (`uvicorn app.api.server:app --host 127.0.0.1 --port 8000`)
+- LM Studio lancé avec un modèle chargé
+
+Variables utiles:
+
+```bash
+export VIVI_LMSTUDIO_BASE_URL=http://127.0.0.1:1234/v1
+export VIVI_LMSTUDIO_MODEL=google/gemma-4-e4b
+```
+
+Checks rapides:
+
+```bash
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/runtime/info
+```
+
+Smoke script (backend déjà lancé):
+
+```bash
+python scripts/smoke_backend.py --base-url http://127.0.0.1:8000 --verbose
+```
+
+Options utiles:
+
+- `--api-key <token>`
+- `--skip-chat`
+- `--skip-document`
+- `--message "Bonjour VIVI"`
+- `--document-message "Quels sont les objectifs du MVP ?"`
+
+Exemple chat simple:
+
+```bash
+curl -X POST http://127.0.0.1:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Bonjour VIVI","mode":"chat"}'
+```
+
+Exemple chat document:
+
+```bash
+curl -X POST http://127.0.0.1:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Quels sont les objectifs du MVP ?","mode":"document","max_sources":3}'
+```
