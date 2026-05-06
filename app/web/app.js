@@ -80,9 +80,13 @@ async function loadRuntime() {
     setText("backend-state", "ok");
     setText("provider-name", payload.provider?.name || "-");
     setText("provider-model", payload.provider?.model || "(non configuré)");
-    setText("provider-available", String(payload.provider?.available));
+    const providerAvailable = Boolean(payload.provider?.available);
+    setText("provider-available", String(providerAvailable));
     setText("vault-state", payload.vault?.exists ? "ok" : "absent");
     setText("vault-notes", String(payload.vault?.notes_count ?? "-"));
+    if (!providerAvailable) {
+      showError("Provider LM Studio indisponible. Vérifie que LM Studio est lancé avec un modèle chargé.");
+    }
   } catch (err) {
     setText("runtime-status", "Runtime indisponible");
     setText("backend-state", "erreur");
@@ -107,7 +111,9 @@ async function sendChat(event) {
 
   const button = document.getElementById("send-btn");
   const loading = document.getElementById("loading");
+  const form = document.getElementById("chat-form");
   button.disabled = true;
+  form.setAttribute("aria-busy", "true");
   loading.classList.remove("hidden");
 
   appendMessage("Utilisateur", message);
@@ -137,6 +143,7 @@ async function sendChat(event) {
     showError(err.message || "Erreur réseau ou backend indisponible.");
   } finally {
     button.disabled = false;
+    form.setAttribute("aria-busy", "false");
     loading.classList.add("hidden");
   }
 }

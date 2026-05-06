@@ -19,6 +19,12 @@ def test_root_serves_web_interface() -> None:
     assert 'id="sources-panel"' in response.text
     assert 'id="sources-list"' in response.text
     assert 'id="runtime-status"' in response.text
+    assert 'id="refresh-runtime-btn"' in response.text
+    assert 'role="log"' in response.text
+    assert 'role="alert"' in response.text
+    assert 'aria-live="polite"' in response.text
+    assert 'aria-label="Envoyer le message"' in response.text
+    assert 'aria-label="Rafraîchir le statut runtime"' in response.text
 
 
 def test_web_static_assets_are_accessible() -> None:

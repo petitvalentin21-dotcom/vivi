@@ -7,12 +7,12 @@
   <link rel="stylesheet" href="/web/style.css" />
 </head>
 <body>
-  <main class="container">
+  <main class="container" id="main-content">
     <header class="panel">
       <h1>VIVI</h1>
       <div class="runtime-row">
-        <div id="runtime-status" class="status">Chargement runtime...</div>
-        <button id="refresh-runtime-btn" type="button" class="secondary-btn">Rafraîchir runtime</button>
+        <div id="runtime-status" class="status" role="status" aria-live="polite">Chargement runtime...</div>
+        <button id="refresh-runtime-btn" type="button" class="secondary-btn" aria-label="Rafraîchir le statut runtime">Rafraîchir runtime</button>
       </div>
       <div class="meta-grid">
         <div><strong>Backend:</strong> <span id="backend-state">-</span></div>
@@ -26,23 +26,23 @@
 
     <section class="panel">
       <h2>Conversation</h2>
-      <div id="chat-log" class="chat-log" aria-live="polite"></div>
+      <div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-relevant="additions text"></div>
 
-      <form id="chat-form" class="chat-form">
+      <form id="chat-form" class="chat-form" aria-describedby="loading">
         <label for="mode">Mode</label>
-        <select id="mode" name="mode">
+        <select id="mode" name="mode" aria-label="Choisir le mode de conversation">
           <option value="chat">chat</option>
           <option value="document">document</option>
         </select>
 
         <label for="message">Message</label>
-        <textarea id="message" name="message" rows="4" placeholder="Écris ton message..."></textarea>
+        <textarea id="message" name="message" rows="4" placeholder="Écris ton message..." aria-label="Message à envoyer"></textarea>
 
-        <button id="send-btn" type="submit">Envoyer</button>
-        <span id="loading" class="loading hidden">Envoi en cours...</span>
+        <button id="send-btn" type="submit" aria-label="Envoyer le message">Envoyer</button>
+        <span id="loading" class="loading hidden" role="status" aria-live="polite">Envoi en cours...</span>
       </form>
 
-      <div id="error-box" class="error hidden"></div>
+      <div id="error-box" class="error hidden" role="alert" aria-live="assertive"></div>
     </section>
 
     <section id="sources-panel" class="panel hidden">

@@ -109,6 +109,13 @@ button:disabled {
   cursor: not-allowed;
 }
 
+button:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #0a7d74;
+  outline-offset: 2px;
+}
+
 .loading { color: var(--muted); }
 
 .error {
