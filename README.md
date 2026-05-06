@@ -162,3 +162,24 @@ curl -X POST http://127.0.0.1:8000/chat \
   -H "Content-Type: application/json" \
   -d '{"message":"Quels sont les objectifs du MVP ?","mode":"document","max_sources":3}'
 ```
+
+## Interface web locale (FEAT-07)
+
+Lancer le backend:
+
+```bash
+uvicorn app.api.server:app --host 127.0.0.1 --port 8000
+```
+
+Ouvrir l'interface:
+
+- <http://127.0.0.1:8000/>
+
+Rappel LM Studio:
+
+- LM Studio doit être lancé avec un modèle configuré (`VIVI_LMSTUDIO_MODEL`).
+
+Modes disponibles dans l'interface:
+
+- `chat`: conversation simple.
+- `document`: conversation avec RAG lexical et sources quand disponibles.

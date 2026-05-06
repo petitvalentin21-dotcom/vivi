@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VIVI MVP</title>
+  <link rel="stylesheet" href="/web/style.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="panel">
+      <h1>VIVI</h1>
+      <div id="runtime-status" class="status">Chargement runtime...</div>
+      <div class="meta-grid">
+        <div><strong>Backend:</strong> <span id="backend-state">-</span></div>
+        <div><strong>Provider:</strong> <span id="provider-name">-</span></div>
+        <div><strong>Modèle:</strong> <span id="provider-model">-</span></div>
+        <div><strong>Disponible:</strong> <span id="provider-available">-</span></div>
+      </div>
+    </header>
+
+    <section class="panel">
+      <h2>Conversation</h2>
+      <div id="chat-log" class="chat-log" aria-live="polite"></div>
+
+      <form id="chat-form" class="chat-form">
+        <label for="mode">Mode</label>
+        <select id="mode" name="mode">
+          <option value="chat">chat</option>
+          <option value="document">document</option>
+        </select>
+
+        <label for="message">Message</label>
+        <textarea id="message" name="message" rows="4" placeholder="Écris ton message..."></textarea>
+
+        <button id="send-btn" type="submit">Envoyer</button>
+        <span id="loading" class="loading hidden">Envoi en cours...</span>
+      </form>
+
+      <div id="error-box" class="error hidden"></div>
+    </section>
+
+    <section id="sources-panel" class="panel hidden">
+      <h2>Sources</h2>
+      <ul id="sources-list" class="sources-list"></ul>
+    </section>
+  </main>
+
+  <script src="/web/app.js"></script>
+</body>
+</html>

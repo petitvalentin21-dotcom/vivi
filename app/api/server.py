@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import Depends, FastAPI, Query
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app import __version__
 from app.api.auth import require_api_key
@@ -36,6 +40,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="VIVI Backend", version=__version__)
     app.add_exception_handler(ApiError, api_error_handler)
     app.add_exception_handler(Exception, unhandled_error_handler)
+    web_dir = Path(__file__).resolve().parents[1] / "web"
+    app.mount("/web", StaticFiles(directory=web_dir), name="web")
+
+    @app.get("/", include_in_schema=False)
+    def web_index() -> FileResponse:
+        return FileResponse(web_dir / "index.html")
 
     @app.get("/health", response_model=HealthResponse)
     def health() -> HealthResponse:
