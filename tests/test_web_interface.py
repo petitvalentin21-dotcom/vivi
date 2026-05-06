@@ -20,6 +20,8 @@ def test_root_serves_web_interface() -> None:
     assert 'id="sources-list"' in response.text
     assert 'id="runtime-status"' in response.text
     assert 'id="refresh-runtime-btn"' in response.text
+    assert 'id="session-status"' in response.text
+    assert 'id="reset-conversation-btn"' in response.text
     assert 'role="log"' in response.text
     assert 'role="alert"' in response.text
     assert 'aria-live="polite"' in response.text
@@ -41,3 +43,11 @@ def test_web_js_has_explicit_source_numbering_label() -> None:
     client = TestClient(create_app(Settings()))
     js = client.get("/web/app.js")
     assert "Source ${sourceNumber}" in js.text
+
+
+def test_web_js_handles_session_id_and_reset() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "let currentSessionId" in js.text
+    assert "session_id: currentSessionId || null" in js.text
+    assert "function resetConversation()" in js.text

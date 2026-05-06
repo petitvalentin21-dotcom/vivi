@@ -1,8 +1,27 @@
+let currentSessionId = sessionStorage.getItem("vivi_session_id") || "";
+
 function setText(id, value) {
   const el = document.getElementById(id);
   if (el) {
     el.textContent = value;
   }
+}
+
+function sessionLabel(sessionId) {
+  if (!sessionId) {
+    return "Session locale : nouvelle";
+  }
+  return `Session locale : ${sessionId.slice(0, 8)}...`;
+}
+
+function setCurrentSessionId(sessionId) {
+  currentSessionId = sessionId || "";
+  if (currentSessionId) {
+    sessionStorage.setItem("vivi_session_id", currentSessionId);
+  } else {
+    sessionStorage.removeItem("vivi_session_id");
+  }
+  setText("session-status", sessionLabel(currentSessionId));
 }
 
 function appendMessage(role, content) {
@@ -122,7 +141,7 @@ async function sendChat(event) {
     const res = await fetch("/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, mode }),
+      body: JSON.stringify({ message, mode, session_id: currentSessionId || null }),
     });
 
     const payload = await res.json().catch(() => ({}));
@@ -136,6 +155,7 @@ async function sendChat(event) {
     }
 
     appendMessage("VIVI", payload.answer || "(réponse vide)");
+    setCurrentSessionId(payload.session_id || "");
     renderSources(payload.sources || []);
     messageEl.value = "";
   } catch (err) {
@@ -148,8 +168,19 @@ async function sendChat(event) {
   }
 }
 
+function resetConversation() {
+  document.getElementById("chat-log").innerHTML = "";
+  document.getElementById("sources-list").innerHTML = "";
+  document.getElementById("sources-panel").classList.add("hidden");
+  document.getElementById("sources-empty").classList.add("hidden");
+  setCurrentSessionId("");
+  showError("Conversation réinitialisée localement.");
+}
+
 window.addEventListener("DOMContentLoaded", () => {
+  setCurrentSessionId(currentSessionId);
   loadRuntime();
   document.getElementById("chat-form").addEventListener("submit", sendChat);
   document.getElementById("refresh-runtime-btn").addEventListener("click", loadRuntime);
+  document.getElementById("reset-conversation-btn").addEventListener("click", resetConversation);
 });

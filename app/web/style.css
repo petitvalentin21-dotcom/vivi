@@ -90,6 +90,12 @@ h1, h2 { margin: 0 0 0.75rem 0; }
   gap: 0.5rem;
 }
 
+.actions-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 select, textarea, button {
   font: inherit;
   padding: 0.55rem;
