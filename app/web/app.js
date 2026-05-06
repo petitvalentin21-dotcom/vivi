@@ -1,4 +1,6 @@
 let currentSessionId = sessionStorage.getItem("vivi_session_id") || "";
+let localApiKey = "";
+let authEnabled = false;
 
 function setText(id, value) {
   const el = document.getElementById(id);
@@ -38,6 +40,70 @@ function showError(text) {
   const box = document.getElementById("error-box");
   box.textContent = text;
   box.classList.remove("hidden");
+}
+
+function setSecurityState() {
+  if (!authEnabled) {
+    setText("security-state", "auth désactivée");
+    return;
+  }
+  if (localApiKey) {
+    setText("security-state", "clé API locale renseignée");
+    return;
+  }
+  setText("security-state", "clé API locale requise");
+}
+
+function updateAuthPanelVisibility() {
+  const panel = document.getElementById("auth-panel");
+  if (!panel) {
+    return;
+  }
+  if (authEnabled) {
+    panel.classList.remove("hidden");
+  } else {
+    panel.classList.add("hidden");
+  }
+  setSecurityState();
+}
+
+function applyApiKey() {
+  const input = document.getElementById("api-key-input");
+  const value = String(input?.value || "").trim();
+  localApiKey = value;
+  if (input) {
+    input.value = "";
+  }
+  setSecurityState();
+  clearError();
+}
+
+function clearApiKey() {
+  localApiKey = "";
+  const input = document.getElementById("api-key-input");
+  if (input) {
+    input.value = "";
+  }
+  setSecurityState();
+}
+
+function authHeaders(baseHeaders = {}) {
+  const headers = { ...baseHeaders };
+  if (localApiKey) {
+    headers.Authorization = `Bearer ${localApiKey}`;
+  }
+  return headers;
+}
+
+function toReadableAuthError(status, payload) {
+  const code = payload?.error?.code || payload?.detail?.error?.code || "";
+  if (status === 401 || status === 403 || code === "auth_required") {
+    if (!localApiKey) {
+      return "Authentification locale activée : renseigne la clé API.";
+    }
+    return "Clé API locale invalide.";
+  }
+  return null;
 }
 
 function clearError() {
@@ -95,6 +161,8 @@ async function loadRuntime() {
       throw new Error(`runtime info HTTP ${res.status}`);
     }
     const payload = await res.json();
+    authEnabled = Boolean(payload.auth_enabled);
+    updateAuthPanelVisibility();
     setText("runtime-status", "Runtime OK");
     setText("backend-state", "ok");
     setText("provider-name", payload.provider?.name || "-");
@@ -107,6 +175,8 @@ async function loadRuntime() {
       showError("Provider LM Studio indisponible. Vérifie que LM Studio est lancé avec un modèle chargé.");
     }
   } catch (err) {
+    authEnabled = false;
+    updateAuthPanelVisibility();
     setText("runtime-status", "Runtime indisponible");
     setText("backend-state", "erreur");
     setText("vault-state", "-");
@@ -140,13 +210,17 @@ async function sendChat(event) {
   try {
     const res = await fetch("/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ message, mode, session_id: currentSessionId || null }),
     });
 
     const payload = await res.json().catch(() => ({}));
 
     if (!res.ok) {
+      const authMessage = toReadableAuthError(res.status, payload);
+      if (authMessage) {
+        throw new Error(authMessage);
+      }
       const err = payload.error || {};
       const code = err.code || "backend_error";
       const msg = err.message || `HTTP ${res.status}`;
@@ -179,8 +253,11 @@ function resetConversation() {
 
 window.addEventListener("DOMContentLoaded", () => {
   setCurrentSessionId(currentSessionId);
+  updateAuthPanelVisibility();
   loadRuntime();
   document.getElementById("chat-form").addEventListener("submit", sendChat);
   document.getElementById("refresh-runtime-btn").addEventListener("click", loadRuntime);
   document.getElementById("reset-conversation-btn").addEventListener("click", resetConversation);
+  document.getElementById("apply-api-key-btn").addEventListener("click", applyApiKey);
+  document.getElementById("clear-api-key-btn").addEventListener("click", clearApiKey);
 });

@@ -16,11 +16,28 @@
       </div>
       <div class="meta-grid">
         <div><strong>Backend:</strong> <span id="backend-state">-</span></div>
+        <div><strong>Sécurité:</strong> <span id="security-state">-</span></div>
         <div><strong>Provider:</strong> <span id="provider-name">-</span></div>
         <div><strong>Modèle:</strong> <span id="provider-model">-</span></div>
         <div><strong>Disponible:</strong> <span id="provider-available">-</span></div>
         <div><strong>Vault:</strong> <span id="vault-state">-</span></div>
         <div><strong>Notes:</strong> <span id="vault-notes">-</span></div>
+      </div>
+      <div id="auth-panel" class="auth-panel hidden">
+        <label for="api-key-input">Clé API locale</label>
+        <div class="auth-row">
+          <input
+            id="api-key-input"
+            name="api-key-input"
+            type="password"
+            placeholder="Saisis la clé API locale"
+            aria-describedby="api-key-help"
+            autocomplete="off"
+          />
+          <button id="apply-api-key-btn" type="button" class="secondary-btn">Appliquer la clé</button>
+          <button id="clear-api-key-btn" type="button" class="secondary-btn">Effacer la clé</button>
+        </div>
+        <p id="api-key-help" class="help-text">Utilisée uniquement pour les appels locaux au backend.</p>
       </div>
     </header>
 

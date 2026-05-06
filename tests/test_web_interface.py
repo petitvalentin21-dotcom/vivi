@@ -20,6 +20,15 @@ def test_root_serves_web_interface() -> None:
     assert 'id="sources-list"' in response.text
     assert 'id="runtime-status"' in response.text
     assert 'id="refresh-runtime-btn"' in response.text
+    assert 'id="security-state"' in response.text
+    assert 'id="auth-panel"' in response.text
+    assert 'id="api-key-input"' in response.text
+    assert 'type="password"' in response.text
+    assert 'for="api-key-input"' in response.text
+    assert 'id="api-key-help"' in response.text
+    assert 'aria-describedby="api-key-help"' in response.text
+    assert 'id="apply-api-key-btn"' in response.text
+    assert 'id="clear-api-key-btn"' in response.text
     assert 'id="session-status"' in response.text
     assert 'id="reset-conversation-btn"' in response.text
     assert 'role="log"' in response.text
@@ -51,3 +60,16 @@ def test_web_js_handles_session_id_and_reset() -> None:
     assert "let currentSessionId" in js.text
     assert "session_id: currentSessionId || null" in js.text
     assert "function resetConversation()" in js.text
+
+
+def test_web_js_handles_local_api_key_without_localstorage() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "let localApiKey = \"\";" in js.text
+    assert "function applyApiKey()" in js.text
+    assert "function clearApiKey()" in js.text
+    assert "headers.Authorization = `Bearer ${localApiKey}`;" in js.text
+    assert "toReadableAuthError" in js.text
+    assert "Clé API locale invalide." in js.text
+    assert "Authentification locale activée : renseigne la clé API." in js.text
+    assert "localStorage" not in js.text

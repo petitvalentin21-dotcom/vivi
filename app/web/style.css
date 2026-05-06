@@ -51,6 +51,31 @@ h1, h2 { margin: 0 0 0.75rem 0; }
   padding: 0.45rem 0.7rem;
 }
 
+.auth-panel {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.auth-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+}
+
+#api-key-input {
+  min-width: 260px;
+  flex: 1 1 260px;
+}
+
+.help-text {
+  color: var(--muted);
+  font-size: 0.92rem;
+  margin: 0.45rem 0 0;
+}
+
 .meta-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
