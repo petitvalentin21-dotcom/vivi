@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from typing import Any
+
+from pydantic import BaseModel, Field
 
 
 class HealthResponse(BaseModel):
@@ -49,3 +51,33 @@ class RuntimeInfoResponse(BaseModel):
     sessions: SessionsInfo
     rag: RagInfo
     external_providers_enabled: bool
+
+
+class ChatRequest(BaseModel):
+    message: str
+    session_id: str | None = None
+    mode: str = "chat"
+    use_rag: bool = False
+    temperature: float | None = None
+    max_tokens: int | None = None
+
+
+class ChatProviderInfo(BaseModel):
+    name: str
+    model: str
+
+
+class ChatRuntimeInfo(BaseModel):
+    rag_used: bool = False
+    sources_count: int = 0
+    external_call_used: bool = False
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    session_id: str
+    provider: ChatProviderInfo
+    mode: str
+    sources: list[Any] = Field(default_factory=list)
+    runtime: ChatRuntimeInfo
+    error: dict[str, Any] | None = None

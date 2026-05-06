@@ -67,3 +67,18 @@ pytest -q
 ```
 
 Note: LM Studio n'est pas requis pour FEAT-01. `/runtime/info` reste disponible même si LM Studio est indisponible.
+
+## Endpoint chat MVP (FEAT-03)
+
+Appel minimal:
+
+```bash
+curl -X POST http://127.0.0.1:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Bonjour VIVI"}'
+```
+
+Notes:
+
+- Pour un test manuel réel, LM Studio doit être lancé avec un modèle configuré via `VIVI_LMSTUDIO_MODEL`.
+- Les tests automatisés (`pytest -q`) utilisent des mocks et ne nécessitent pas LM Studio réel.
