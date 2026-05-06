@@ -1,2 +1,69 @@
-# vivi
-Fork recadré + mvp de Vivi ia 
+# VIVI
+
+VIVI est une IA locale d’assistance personnelle.
+
+Objectif MVP :
+
+- interface web dédiée simple ;
+- discussion avec un modèle local via LM Studio ;
+- interrogation d’un vault Obsidian ;
+- affichage des sources utilisées ;
+- statut runtime clair ;
+- protection simple ;
+- fonctionnement local-first.
+
+## Statut
+
+Projet recentré en phase de cadrage.
+Socle backend MVP minimal initialisé (FEAT-01).
+
+## Source de vérité
+
+La source de vérité produit et architecture se trouve dans :
+
+- `knowledge_vault/00_product/VIVI_MVP_CADRAGE_v0.1.md`
+
+## Vault Obsidian
+
+Le vault Obsidian du projet est situé dans :
+
+- `knowledge_vault/`
+
+## Règle principale
+
+VIVI est d’abord un assistant local de discussion :
+
+> Je lui parle, elle me répond.
+
+Le MVP doit rester strict :
+
+- interface dédiée ;
+- LM Studio ;
+- chat local ;
+- RAG Obsidian ;
+- sources visibles ;
+- runtime status.
+
+Tout le reste est post-MVP sauf décision explicite.
+
+## Backend MVP (FEAT-01)
+
+Installation:
+
+```bash
+pip install -r requirements.txt
+```
+
+Lancer l'API:
+
+```bash
+uvicorn app.api.server:app --host 127.0.0.1 --port 8000
+```
+
+Tests:
+
+```bash
+pytest -q
+```
+
+Note: LM Studio n'est pas requis pour FEAT-01. `/runtime/info` reste disponible même si LM Studio est indisponible.
