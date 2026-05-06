@@ -10,12 +10,17 @@
   <main class="container">
     <header class="panel">
       <h1>VIVI</h1>
-      <div id="runtime-status" class="status">Chargement runtime...</div>
+      <div class="runtime-row">
+        <div id="runtime-status" class="status">Chargement runtime...</div>
+        <button id="refresh-runtime-btn" type="button" class="secondary-btn">Rafraîchir runtime</button>
+      </div>
       <div class="meta-grid">
         <div><strong>Backend:</strong> <span id="backend-state">-</span></div>
         <div><strong>Provider:</strong> <span id="provider-name">-</span></div>
         <div><strong>Modèle:</strong> <span id="provider-model">-</span></div>
         <div><strong>Disponible:</strong> <span id="provider-available">-</span></div>
+        <div><strong>Vault:</strong> <span id="vault-state">-</span></div>
+        <div><strong>Notes:</strong> <span id="vault-notes">-</span></div>
       </div>
     </header>
 
@@ -42,7 +47,8 @@
 
     <section id="sources-panel" class="panel hidden">
       <h2>Sources</h2>
-      <ul id="sources-list" class="sources-list"></ul>
+      <div id="sources-empty" class="sources-empty hidden">Aucune source retournée pour cette réponse documentaire.</div>
+      <div id="sources-list" class="sources-list"></div>
     </section>
   </main>
 

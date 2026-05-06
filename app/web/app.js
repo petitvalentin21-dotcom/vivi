@@ -8,7 +8,8 @@ function setText(id, value) {
 function appendMessage(role, content) {
   const log = document.getElementById("chat-log");
   const block = document.createElement("div");
-  block.className = "msg";
+  const roleClass = role === "Utilisateur" ? "msg-user" : "msg-assistant";
+  block.className = `msg ${roleClass}`;
   block.innerHTML = `<strong>${role}</strong><div>${content}</div>`;
   log.appendChild(block);
   log.scrollTop = log.scrollHeight;
@@ -29,23 +30,40 @@ function clearError() {
 function renderSources(sources) {
   const panel = document.getElementById("sources-panel");
   const list = document.getElementById("sources-list");
+  const empty = document.getElementById("sources-empty");
   list.innerHTML = "";
+  empty.classList.add("hidden");
 
+  const mode = document.getElementById("mode").value;
   if (!sources || sources.length === 0) {
+    if (mode === "document") {
+      panel.classList.remove("hidden");
+      empty.classList.remove("hidden");
+      return;
+    }
     panel.classList.add("hidden");
     return;
   }
 
-  for (const src of sources) {
-    const item = document.createElement("li");
+  sources.forEach((src, index) => {
+    const item = document.createElement("div");
     item.className = "source-item";
-    const titleOrPath = src.title || src.path || "source";
+    const label = src.title || src.section || src.path || "source";
     const path = src.path || "";
     const excerpt = src.excerpt || "";
     const score = typeof src.score === "number" ? `score=${src.score.toFixed(2)}` : "score=n/a";
-    item.innerHTML = `<div><strong>${titleOrPath}</strong> (${score})</div><div>${path}</div><div>${excerpt}</div>`;
+    const sourceNumber = index + 1;
+    item.innerHTML = `
+      <div class="source-head">
+        <span class="source-index">Source ${sourceNumber}</span>
+        <strong>${label}</strong>
+        <span class="source-score">${score}</span>
+      </div>
+      <div class="source-path">${path}</div>
+      <div class="source-excerpt">${excerpt}</div>
+    `;
     list.appendChild(item);
-  }
+  });
 
   panel.classList.remove("hidden");
 }
@@ -63,10 +81,14 @@ async function loadRuntime() {
     setText("provider-name", payload.provider?.name || "-");
     setText("provider-model", payload.provider?.model || "(non configuré)");
     setText("provider-available", String(payload.provider?.available));
+    setText("vault-state", payload.vault?.exists ? "ok" : "absent");
+    setText("vault-notes", String(payload.vault?.notes_count ?? "-"));
   } catch (err) {
     setText("runtime-status", "Runtime indisponible");
     setText("backend-state", "erreur");
-    showError(`Erreur runtime: ${err.message}`);
+    setText("vault-state", "-");
+    setText("vault-notes", "-");
+    showError(`Erreur runtime: ${err.message || "backend indisponible"}`);
   }
 }
 
@@ -112,7 +134,7 @@ async function sendChat(event) {
     messageEl.value = "";
   } catch (err) {
     appendMessage("VIVI", "Erreur lors de la requête.");
-    showError(err.message);
+    showError(err.message || "Erreur réseau ou backend indisponible.");
   } finally {
     button.disabled = false;
     loading.classList.add("hidden");
@@ -122,4 +144,5 @@ async function sendChat(event) {
 window.addEventListener("DOMContentLoaded", () => {
   loadRuntime();
   document.getElementById("chat-form").addEventListener("submit", sendChat);
+  document.getElementById("refresh-runtime-btn").addEventListener("click", loadRuntime);
 });
