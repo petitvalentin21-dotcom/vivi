@@ -1,3 +1,3 @@
-from app.llm.lmstudio import LMStudioClient, LMStudioHealth
+from app.llm.lmstudio import LMStudioClient, LMStudioCompletionResult, LMStudioError, LMStudioProviderStatus
 
-__all__ = ["LMStudioClient", "LMStudioHealth"]
+__all__ = ["LMStudioClient", "LMStudioProviderStatus", "LMStudioCompletionResult", "LMStudioError"]

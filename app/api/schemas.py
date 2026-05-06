@@ -15,6 +15,8 @@ class ProviderInfo(BaseModel):
     base_url: str
     model: str
     available: bool
+    model_configured: bool
+    model_available: bool | None = None
     error: str | None = None
 
 

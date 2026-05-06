@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 
 from app import __version__
 from app.config import Settings
@@ -27,7 +27,7 @@ def build_runtime_info(settings: Settings) -> RuntimeInfo:
         model=settings.lmstudio_model,
         timeout_seconds=settings.llm_timeout_seconds,
     )
-    provider = asdict(provider_client.healthcheck())
+    provider = provider_client.get_provider_status().__dict__
 
     exists, notes_count, vault_error = count_markdown_notes(settings.knowledge_vault_path)
 
