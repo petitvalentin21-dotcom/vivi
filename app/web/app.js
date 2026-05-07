@@ -217,22 +217,50 @@ function renderSources(sources) {
   }
 
   sources.forEach((src, index) => {
-    const item = document.createElement("div");
+    const item = document.createElement("article");
     item.className = "source-item";
     const label = src.title || src.section || src.path || "source";
     const path = src.path || "";
     const excerpt = src.excerpt || "";
     const score = typeof src.score === "number" ? `score=${src.score.toFixed(2)}` : "score=n/a";
     const sourceNumber = index + 1;
-    item.innerHTML = `
-      <div class="source-head">
-        <span class="source-index">Source ${sourceNumber}</span>
-        <strong>${label}</strong>
-        <span class="source-score">${score}</span>
-      </div>
-      <div class="source-path">${path}</div>
-      <div class="source-excerpt">${excerpt}</div>
-    `;
+
+    item.setAttribute("aria-label", `Source ${sourceNumber}: ${label}`);
+
+    const header = document.createElement("div");
+    header.className = "source-head";
+
+    const indexLabel = document.createElement("span");
+    indexLabel.className = "source-index";
+    indexLabel.textContent = `Source ${sourceNumber}`;
+
+    const title = document.createElement("strong");
+    title.className = "source-title";
+    title.textContent = label;
+
+    const scoreLabel = document.createElement("span");
+    scoreLabel.className = "source-score";
+    scoreLabel.textContent = score;
+
+    header.append(indexLabel, title, scoreLabel);
+
+    const pathEl = document.createElement("div");
+    pathEl.className = "source-path";
+    pathEl.textContent = path || "chemin non fourni";
+
+    const details = document.createElement("details");
+    details.className = "source-details";
+    details.open = true;
+
+    const summary = document.createElement("summary");
+    summary.textContent = "Extrait utilisé";
+
+    const excerptEl = document.createElement("div");
+    excerptEl.className = "source-excerpt";
+    excerptEl.textContent = excerpt || "Aucun extrait fourni.";
+
+    details.append(summary, excerptEl);
+    item.append(header, pathEl, details);
     list.appendChild(item);
   });
 

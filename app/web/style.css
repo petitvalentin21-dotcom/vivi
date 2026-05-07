@@ -185,38 +185,79 @@ textarea:focus-visible {
 }
 
 .source-item {
-  margin-bottom: 0.7rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.65rem;
+  margin-bottom: 0.85rem;
+  border: 1px solid #cfd8df;
+  border-left: 4px solid #6aa7a0;
+  border-radius: 10px;
+  padding: 0.8rem;
   background: #fbfcfd;
 }
 
 .source-head {
   display: flex;
   gap: 0.5rem;
-  align-items: baseline;
+  align-items: flex-start;
   flex-wrap: wrap;
+  margin-bottom: 0.35rem;
 }
 
 .source-index {
   font-weight: 700;
   color: #2f3d49;
+  background: #e6f2f1;
+  border: 1px solid #c7dedb;
+  border-radius: 999px;
+  padding: 0.12rem 0.45rem;
+  font-size: 0.9rem;
+}
+
+.source-title {
+  flex: 1 1 220px;
+  line-height: 1.35;
 }
 
 .source-score {
   color: var(--muted);
   font-size: 0.9rem;
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .source-path {
   color: #4f5e6d;
-  font-size: 0.92rem;
-  margin-top: 0.35rem;
+  font-size: 0.88rem;
+  margin-top: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.source-details {
+  margin-top: 0.65rem;
+}
+
+.source-details summary {
+  cursor: pointer;
+  color: #24423f;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.source-details summary:focus-visible {
+  outline: 3px solid #0a7d74;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .source-excerpt {
   margin-top: 0.4rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  background: #f4f7f5;
+  border: 1px solid #dce7df;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 12rem;
+  overflow: auto;
 }
 
 .sources-empty {

@@ -61,6 +61,28 @@ def test_web_js_has_explicit_source_numbering_label() -> None:
     assert "Source ${sourceNumber}" in js.text
 
 
+def test_web_js_renders_readable_source_cards() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert 'document.createElement("article")' in js.text
+    assert 'item.className = "source-item"' in js.text
+    assert 'item.setAttribute("aria-label", `Source ${sourceNumber}: ${label}`);' in js.text
+    assert 'title.className = "source-title"' in js.text
+    assert 'pathEl.className = "source-path"' in js.text
+    assert 'scoreLabel.className = "source-score"' in js.text
+    assert 'excerptEl.className = "source-excerpt"' in js.text
+    assert 'summary.textContent = "Extrait utilisé";' in js.text
+    assert "details.open = true;" in js.text
+
+
+def test_web_js_source_rendering_supports_multiple_sources() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "sources.forEach((src, index) => {" in js.text
+    assert "const sourceNumber = index + 1;" in js.text
+    assert "list.appendChild(item);" in js.text
+
+
 def test_web_js_handles_session_id_and_reset() -> None:
     client = TestClient(create_app(Settings()))
     js = client.get("/web/app.js")

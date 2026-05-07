@@ -30,6 +30,10 @@ Trace Release Candidate MVP locale :
 
 - [docs/MVP_RELEASE_CANDIDATE.md](docs/MVP_RELEASE_CANDIDATE.md)
 
+Audit UX après manipulation MVP :
+
+- [docs/MVP_UX_AUDIT.md](docs/MVP_UX_AUDIT.md)
+
 ## Installation rapide
 
 ```bash
