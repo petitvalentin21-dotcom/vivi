@@ -8,8 +8,49 @@
 </head>
 <body>
   <main class="container" id="main-content">
-    <header class="panel">
+    <header class="app-header">
       <h1>VIVI</h1>
+      <p>Assistant local via LM Studio et Obsidian.</p>
+    </header>
+
+    <section class="panel conversation-panel">
+      <h2>Conversation</h2>
+      <div id="session-status" class="status" role="status" aria-live="polite">Session locale : nouvelle</div>
+      <div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-relevant="additions text"></div>
+
+      <form id="chat-form" class="chat-form" aria-describedby="loading">
+        <label for="mode">Mode</label>
+        <select id="mode" name="mode" aria-label="Choisir le mode de conversation">
+          <option value="chat">chat</option>
+          <option value="document">document</option>
+        </select>
+
+        <label for="message">Message</label>
+        <textarea id="message" name="message" rows="4" placeholder="Écris ton message..." aria-label="Message à envoyer"></textarea>
+
+        <div class="actions-row">
+          <button id="send-btn" type="submit" aria-label="Envoyer le message">Envoyer</button>
+          <button id="reset-conversation-btn" type="button" class="secondary-btn" aria-label="Réinitialiser la conversation locale">Réinitialiser la conversation</button>
+        </div>
+        <span id="loading" class="loading hidden" role="status" aria-live="polite">Envoi en cours...</span>
+      </form>
+
+      <div id="error-box" class="error hidden" role="alert" aria-live="assertive"></div>
+    </section>
+
+    <details class="panel help-panel" aria-labelledby="help-title">
+      <summary id="help-title">Utiliser VIVI</summary>
+      <ul id="help-list" class="help-list">
+        <li><strong>Mode chat :</strong> pour discuter directement avec VIVI.</li>
+        <li><strong>Mode document :</strong> pour répondre avec le contexte du vault Obsidian.</li>
+        <li><strong>Sources :</strong> en mode document, VIVI affiche les notes utilisées quand elle en trouve.</li>
+        <li><strong>LM Studio :</strong> doit être lancé avec un modèle chargé.</li>
+        <li><strong>Si le modèle est indisponible :</strong> vérifier LM Studio, le modèle chargé et la configuration <code>.env</code>.</li>
+      </ul>
+    </details>
+
+    <details class="panel runtime-panel" aria-labelledby="runtime-title">
+      <summary id="runtime-title">État local</summary>
       <div class="runtime-row">
         <div id="runtime-status" class="status" role="status" aria-live="polite">Chargement runtime...</div>
         <button id="refresh-runtime-btn" type="button" class="secondary-btn" aria-label="Rafraîchir le statut runtime">Rafraîchir runtime</button>
@@ -39,43 +80,7 @@
         </div>
         <p id="api-key-help" class="help-text">Utilisée uniquement pour les appels locaux au backend.</p>
       </div>
-    </header>
-
-    <section class="panel help-panel" aria-labelledby="help-title">
-      <h2 id="help-title">Utiliser VIVI</h2>
-      <ul id="help-list" class="help-list">
-        <li><strong>Mode chat :</strong> pour discuter directement avec VIVI.</li>
-        <li><strong>Mode document :</strong> pour répondre avec le contexte du vault Obsidian.</li>
-        <li><strong>Sources :</strong> en mode document, VIVI affiche les notes utilisées quand elle en trouve.</li>
-        <li><strong>LM Studio :</strong> doit être lancé avec un modèle chargé.</li>
-        <li><strong>Si le modèle est indisponible :</strong> vérifier LM Studio, le modèle chargé et la configuration <code>.env</code>.</li>
-      </ul>
-    </section>
-
-    <section class="panel">
-      <h2>Conversation</h2>
-      <div id="session-status" class="status" role="status" aria-live="polite">Session locale : nouvelle</div>
-      <div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-relevant="additions text"></div>
-
-      <form id="chat-form" class="chat-form" aria-describedby="loading">
-        <label for="mode">Mode</label>
-        <select id="mode" name="mode" aria-label="Choisir le mode de conversation">
-          <option value="chat">chat</option>
-          <option value="document">document</option>
-        </select>
-
-        <label for="message">Message</label>
-        <textarea id="message" name="message" rows="4" placeholder="Écris ton message..." aria-label="Message à envoyer"></textarea>
-
-        <div class="actions-row">
-          <button id="send-btn" type="submit" aria-label="Envoyer le message">Envoyer</button>
-          <button id="reset-conversation-btn" type="button" class="secondary-btn" aria-label="Réinitialiser la conversation locale">Réinitialiser la conversation</button>
-        </div>
-        <span id="loading" class="loading hidden" role="status" aria-live="polite">Envoi en cours...</span>
-      </form>
-
-      <div id="error-box" class="error hidden" role="alert" aria-live="assertive"></div>
-    </section>
+    </details>
 
     <section id="sources-panel" class="panel hidden">
       <h2>Sources</h2>

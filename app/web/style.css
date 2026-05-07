@@ -23,7 +23,7 @@ body {
   margin: 1rem auto;
   padding: 0 1rem 1rem;
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .panel {
@@ -34,6 +34,26 @@ body {
 }
 
 h1, h2 { margin: 0 0 0.75rem 0; }
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.app-header h1 {
+  margin: 0;
+}
+
+.app-header p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.conversation-panel {
+  padding: 1.05rem;
+}
 
 .status { color: var(--muted); margin-bottom: 0.75rem; }
 .runtime-row {
@@ -80,6 +100,30 @@ h1, h2 { margin: 0 0 0.75rem 0; }
   margin-bottom: 0.55rem;
 }
 
+.help-panel,
+.runtime-panel {
+  padding: 0.75rem 1rem;
+}
+
+.help-panel summary,
+.runtime-panel summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: #24423f;
+}
+
+.help-panel summary:focus-visible,
+.runtime-panel summary:focus-visible {
+  outline: 3px solid #0a7d74;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.help-panel[open] summary,
+.runtime-panel[open] summary {
+  margin-bottom: 0.65rem;
+}
+
 .help-list {
   margin: 0;
   padding-left: 1.15rem;
@@ -105,10 +149,10 @@ h1, h2 { margin: 0 0 0.75rem 0; }
 .chat-log {
   border: 1px solid var(--border);
   border-radius: 8px;
-  min-height: 120px;
-  max-height: 300px;
+  min-height: 360px;
+  max-height: min(58vh, 620px);
   overflow: auto;
-  padding: 0.75rem;
+  padding: 0.9rem;
   background: #fcfcfb;
   margin-bottom: 0.75rem;
 }
@@ -300,9 +344,22 @@ textarea:focus-visible {
 }
 
 @media (max-width: 640px) {
+  .app-header {
+    display: block;
+  }
+
+  .app-header p {
+    margin-top: 0.2rem;
+  }
+
   .runtime-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .chat-log {
+    min-height: 280px;
+    max-height: 52vh;
   }
 }
 

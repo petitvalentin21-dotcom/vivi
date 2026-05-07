@@ -20,6 +20,13 @@ def test_root_serves_web_interface() -> None:
     assert 'id="sources-list"' in response.text
     assert 'id="runtime-status"' in response.text
     assert 'id="refresh-runtime-btn"' in response.text
+    assert 'class="panel conversation-panel"' in response.text
+    assert 'class="panel help-panel"' in response.text
+    assert 'class="panel runtime-panel"' in response.text
+    assert '<summary id="help-title">Utiliser VIVI</summary>' in response.text
+    assert '<summary id="runtime-title">État local</summary>' in response.text
+    assert "<details" in response.text
+    assert "<details open" not in response.text
     assert "Utiliser VIVI" in response.text
     assert "Mode chat" in response.text
     assert "Mode document" in response.text
@@ -43,6 +50,25 @@ def test_root_serves_web_interface() -> None:
     assert 'aria-label="Envoyer le message"' in response.text
     assert 'aria-label="Rafraîchir le statut runtime"' in response.text
     assert "Aucune source trouvée pour cette question." in response.text
+
+
+def test_web_layout_prioritizes_conversation_before_help_and_runtime() -> None:
+    client = TestClient(create_app(Settings()))
+    response = client.get("/")
+    html = response.text
+
+    assert html.index('class="panel conversation-panel"') < html.index('class="panel help-panel"')
+    assert html.index('class="panel conversation-panel"') < html.index('class="panel runtime-panel"')
+
+
+def test_web_css_gives_conversation_more_room() -> None:
+    client = TestClient(create_app(Settings()))
+    css = client.get("/web/style.css")
+    assert ".conversation-panel" in css.text
+    assert "min-height: 360px;" in css.text
+    assert "max-height: min(58vh, 620px);" in css.text
+    assert ".help-panel summary" in css.text
+    assert ".runtime-panel summary" in css.text
 
 
 def test_web_static_assets_are_accessible() -> None:
