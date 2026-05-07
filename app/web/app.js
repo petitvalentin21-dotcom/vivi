@@ -221,7 +221,7 @@ function renderSources(sources) {
     item.className = "source-item";
     const label = src.title || src.section || src.path || "source";
     const path = src.path || "";
-    const excerpt = src.excerpt || "";
+    const sourceText = src.chunk_text || src.content || src.full_text || src.excerpt || "";
     const score = typeof src.score === "number" ? `score=${src.score.toFixed(2)}` : "score=n/a";
     const sourceNumber = index + 1;
 
@@ -250,14 +250,13 @@ function renderSources(sources) {
 
     const details = document.createElement("details");
     details.className = "source-details";
-    details.open = true;
 
     const summary = document.createElement("summary");
-    summary.textContent = "Extrait utilisé";
+    summary.textContent = "Afficher l'extrait utilisé";
 
     const excerptEl = document.createElement("div");
     excerptEl.className = "source-excerpt";
-    excerptEl.textContent = excerpt || "Aucun extrait fourni.";
+    excerptEl.textContent = sourceText || "Aucun contenu complet fourni.";
 
     details.append(summary, excerptEl);
     item.append(header, pathEl, details);

@@ -69,12 +69,15 @@ def test_chat_mode_document_uses_rag_and_returns_sources(monkeypatch, tmp_path: 
 
     first = payload["sources"][0]
     assert "path" in first and "title" in first and "section" in first and "score" in first and "excerpt" in first
+    assert "chunk_text" in first
+    assert first["chunk_text"]
 
     rag_prompt = [m for m in captured["messages"] if m["role"] == "system" and "Contexte documentaire Obsidian" in m["content"]]
     assert rag_prompt
     for src in payload["sources"]:
         assert src["title"] in rag_prompt[0]["content"]
         assert src["path"] in rag_prompt[0]["content"]
+        assert src["chunk_text"] in rag_prompt[0]["content"]
 
 
 def test_chat_use_rag_true_with_chat_mode_activates_rag(monkeypatch, tmp_path: Path) -> None:

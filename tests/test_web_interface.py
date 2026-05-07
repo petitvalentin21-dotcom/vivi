@@ -71,8 +71,10 @@ def test_web_js_renders_readable_source_cards() -> None:
     assert 'pathEl.className = "source-path"' in js.text
     assert 'scoreLabel.className = "source-score"' in js.text
     assert 'excerptEl.className = "source-excerpt"' in js.text
-    assert 'summary.textContent = "Extrait utilisé";' in js.text
-    assert "details.open = true;" in js.text
+    assert 'summary.textContent = "Afficher l\'extrait utilisé";' in js.text
+    assert "src.chunk_text" in js.text
+    assert "src.excerpt" in js.text
+    assert "details.open = true;" not in js.text
 
 
 def test_web_js_source_rendering_supports_multiple_sources() -> None:

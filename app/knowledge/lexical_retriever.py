@@ -29,6 +29,7 @@ def retrieve_lexical(query: str, chunks: list[NoteChunk], top_k: int) -> list[So
             section=chunk.section,
             score=round(score, 4),
             excerpt=excerpt,
+            chunk_text=chunk.content,
         )
         scored.append((score, source))
 

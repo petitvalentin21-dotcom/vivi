@@ -209,7 +209,7 @@ def _build_rag_context(sources: list) -> str:
     blocks: list[str] = ["Contexte documentaire Obsidian :"]
     for idx, src in enumerate(sources, start=1):
         blocks.append(f"[{idx}] {src.title} - {src.path} - {src.section}")
-        blocks.append(str(src.excerpt).strip())
+        blocks.append(str(src.chunk_text).strip())
         blocks.append("")
     return "\n".join(blocks).strip()
 

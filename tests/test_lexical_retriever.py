@@ -57,3 +57,21 @@ def test_retriever_respects_top_k_excludes_zero_and_excerpt_is_short() -> None:
     assert len(results) == 1
     assert all(item.score > 0 for item in results)
     assert len(results[0].excerpt) <= 180
+
+
+def test_retriever_keeps_full_chunk_text_next_to_short_excerpt() -> None:
+    long_note = MarkdownNote(
+        path="00_product/long.md",
+        title="Long Source",
+        content=" ".join(["Contexte avant search"] + [f"detail-{idx}" for idx in range(80)]),
+        headings=["Long Source"],
+        tags=[],
+        metadata={},
+    )
+    chunks = split_into_chunks([long_note])
+    results = retrieve_lexical("search", chunks, 1)
+
+    assert results[0].chunk_text
+    assert results[0].excerpt
+    assert results[0].chunk_text != results[0].excerpt
+    assert "detail-79" in results[0].chunk_text

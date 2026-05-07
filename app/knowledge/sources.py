@@ -11,6 +11,7 @@ class Source:
     section: str
     score: float
     excerpt: str
+    chunk_text: str
 
 
 @dataclass(frozen=True)

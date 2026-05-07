@@ -232,6 +232,8 @@ textarea:focus-visible {
 
 .source-details {
   margin-top: 0.65rem;
+  border-top: 1px solid #e2e8ed;
+  padding-top: 0.55rem;
 }
 
 .source-details summary {
@@ -256,7 +258,7 @@ textarea:focus-visible {
   line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  max-height: 12rem;
+  max-height: 22rem;
   overflow: auto;
 }
 

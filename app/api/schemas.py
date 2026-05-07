@@ -91,6 +91,7 @@ class KnowledgeSearchResult(BaseModel):
     section: str
     score: float
     excerpt: str
+    chunk_text: str
 
 
 class KnowledgeSearchResponse(BaseModel):
