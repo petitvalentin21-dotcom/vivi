@@ -15,6 +15,11 @@ def test_base_url_default_shape() -> None:
     assert client.base_url == "http://localhost:1234/v1"
 
 
+def test_base_url_without_v1_is_normalized() -> None:
+    client = LMStudioClient(base_url="http://127.0.0.1:1234", model="m1", timeout_seconds=60)
+    assert client.base_url == "http://127.0.0.1:1234/v1"
+
+
 def test_healthcheck_unavailable_when_server_inaccessible(monkeypatch) -> None:
     def fake_get(*args, **kwargs):
         raise httpx.ConnectError("no route")
@@ -87,7 +92,7 @@ def test_chat_completion_posts_expected_payload(monkeypatch) -> None:
     result, err = client.chat_completion(messages=[{"role": "user", "content": "hi"}])
     assert err is None
     assert result is not None
-    assert captured["url"].endswith("/chat/completions")
+    assert captured["url"].endswith("/v1/chat/completions")
     assert captured["json"]["model"] == "model-a"
     assert captured["json"]["messages"][0]["content"] == "hi"
     assert captured["headers"]["Content-Type"] == "application/json"
@@ -166,6 +171,45 @@ def test_chat_completion_handles_invalid_response(monkeypatch) -> None:
     assert result is None
     assert err is not None
     assert err.code == "lmstudio_invalid_response"
+    assert "choices list is missing or empty" in err.recovery_hint
+
+
+def test_chat_completion_handles_empty_choices_list(monkeypatch) -> None:
+    def fake_post(*args, **kwargs):
+        return httpx.Response(200, json={"choices": []})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    client = LMStudioClient(base_url="http://localhost:1234/v1", model="model-a", timeout_seconds=5)
+    result, err = client.chat_completion(messages=[{"role": "user", "content": "x"}])
+    assert result is None
+    assert err is not None
+    assert err.code == "lmstudio_invalid_response"
+    assert "choices list is missing or empty" in err.recovery_hint
+
+
+def test_chat_completion_handles_missing_message(monkeypatch) -> None:
+    def fake_post(*args, **kwargs):
+        return httpx.Response(200, json={"choices": [{"finish_reason": "stop"}]})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    client = LMStudioClient(base_url="http://localhost:1234/v1", model="model-a", timeout_seconds=5)
+    result, err = client.chat_completion(messages=[{"role": "user", "content": "x"}])
+    assert result is None
+    assert err is not None
+    assert err.code == "lmstudio_invalid_response"
+    assert "choices[0].message is missing or invalid" in err.recovery_hint
+
+
+def test_chat_completion_handles_missing_content(monkeypatch) -> None:
+    def fake_post(*args, **kwargs):
+        return httpx.Response(200, json={"choices": [{"message": {}}]})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    client = LMStudioClient(base_url="http://localhost:1234/v1", model="model-a", timeout_seconds=5)
+    result, err = client.chat_completion(messages=[{"role": "user", "content": "x"}])
+    assert result is None
+    assert err is not None
+    assert err.code == "lmstudio_empty_response"
 
 
 def test_chat_completion_handles_timeout(monkeypatch) -> None:
@@ -218,3 +262,17 @@ def test_http_401_returns_auth_specific_recovery_hint(monkeypatch) -> None:
     assert err is not None
     assert err.code == "lmstudio_http_error"
     assert "VIVI_LMSTUDIO_API_KEY" in err.recovery_hint
+
+
+def test_invalid_json_error_contains_safe_diagnostic(monkeypatch) -> None:
+    def fake_post(*args, **kwargs):
+        return httpx.Response(200, text="<html>oops</html>", headers={"content-type": "text/html"})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    client = LMStudioClient(base_url="http://localhost:1234/v1", model="model-a", timeout_seconds=5)
+    result, err = client.chat_completion(messages=[{"role": "user", "content": "x"}])
+    assert result is None
+    assert err is not None
+    assert err.code == "lmstudio_invalid_response"
+    assert "content-type=text/html" in err.message
+    assert "body_preview=" in err.recovery_hint

@@ -41,7 +41,7 @@ class LMStudioClient:
     provider_name = "lmstudio"
 
     def __init__(self, *, base_url: str, model: str, api_key: str = "", timeout_seconds: float) -> None:
-        self.base_url = str(base_url or "http://localhost:1234/v1").rstrip("/")
+        self.base_url = self._normalize_base_url(str(base_url or "http://127.0.0.1:1234"))
         self.model = str(model or "").strip()
         self.api_key = str(api_key or "").strip()
         self.timeout_seconds = float(timeout_seconds)
@@ -168,30 +168,15 @@ class LMStudioClient:
 
         choices = body.get("choices")
         if not isinstance(choices, list) or not choices:
-            return None, self._error(
-                code="lmstudio_invalid_response",
-                message="LM Studio returned an invalid chat response.",
-                recovery_hint="Verify LM Studio response format and retry.",
-                status_code=502,
-            )
+            return None, self._invalid_chat_response_error(body, "choices list is missing or empty")
 
         first = choices[0]
         if not isinstance(first, dict):
-            return None, self._error(
-                code="lmstudio_invalid_response",
-                message="LM Studio returned an invalid choice entry.",
-                recovery_hint="Verify LM Studio response format and retry.",
-                status_code=502,
-            )
+            return None, self._invalid_chat_response_error(body, "choices[0] is not an object")
 
         message = first.get("message")
         if not isinstance(message, dict):
-            return None, self._error(
-                code="lmstudio_invalid_response",
-                message="LM Studio response is missing assistant message.",
-                recovery_hint="Retry and ensure LM Studio returns OpenAI-compatible choices.",
-                status_code=502,
-            )
+            return None, self._invalid_chat_response_error(body, "choices[0].message is missing or invalid")
 
         content = str(message.get("content", "")).strip()
         if not content:
@@ -314,11 +299,13 @@ class LMStudioClient:
         try:
             payload = response.json()
         except ValueError as exc:
+            content_type = response.headers.get("content-type", "unknown")
+            snippet = response.text[:120].replace("\n", " ").strip()
             raise LMStudioRequestException(
                 self._error(
                     code="lmstudio_invalid_response",
-                    message="LM Studio returned invalid JSON.",
-                    recovery_hint="Retry and check LM Studio server output.",
+                    message=f"LM Studio returned invalid JSON (content-type={content_type}).",
+                    recovery_hint=f"Retry and check LM Studio server output. body_preview={snippet!r}",
                     status_code=502,
                 )
             ) from exc
@@ -337,11 +324,41 @@ class LMStudioClient:
     def _build_url(self, path: str) -> str:
         return f"{self.base_url}/{path.lstrip('/')}"
 
+    def _normalize_base_url(self, base_url: str) -> str:
+        base = str(base_url or "").strip().rstrip("/")
+        if not base:
+            base = "http://127.0.0.1:1234"
+        if base.endswith("/v1"):
+            return base
+        return f"{base}/v1"
+
     def _outbound_headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
         return headers
+
+    def _invalid_chat_response_error(self, body: dict[str, Any], reason: str) -> LMStudioError:
+        choices = body.get("choices") if isinstance(body, dict) else None
+        has_choices = isinstance(choices, list)
+        first_choice = choices[0] if has_choices and choices else None
+        first_choice_is_dict = isinstance(first_choice, dict)
+        message = first_choice.get("message") if first_choice_is_dict else None
+        message_is_dict = isinstance(message, dict)
+        has_content = bool(str(message.get("content", "")).strip()) if message_is_dict else False
+        payload_type = type(body).__name__
+        choices_type = type(choices).__name__ if choices is not None else "missing"
+        detail = (
+            f"reason={reason}; payload_type={payload_type}; choices_type={choices_type}; "
+            f"has_choices={has_choices}; first_choice_is_dict={first_choice_is_dict}; "
+            f"message_is_dict={message_is_dict}; has_content={has_content}"
+        )
+        return self._error(
+            code="lmstudio_invalid_response",
+            message="LM Studio returned an invalid chat response.",
+            recovery_hint=f"Verify LM Studio response format and retry. ({detail})",
+            status_code=502,
+        )
 
     def _error(self, *, code: str, message: str, recovery_hint: str, status_code: int) -> LMStudioError:
         return LMStudioError(code=code, message=message, recovery_hint=recovery_hint, status_code=status_code)

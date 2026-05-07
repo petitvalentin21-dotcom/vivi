@@ -42,6 +42,14 @@ function showError(text) {
   box.classList.remove("hidden");
 }
 
+function showNormalizedError(normalized) {
+  const box = document.getElementById("error-box");
+  const primary = String(normalized?.primary || "").trim();
+  const detail = String(normalized?.detail || "").trim();
+  box.textContent = detail ? `${primary} ${detail}` : primary;
+  box.classList.remove("hidden");
+}
+
 function setSecurityState() {
   if (!authEnabled) {
     setText("security-state", "auth désactivée");
@@ -95,39 +103,93 @@ function authHeaders(baseHeaders = {}) {
   return headers;
 }
 
-function toReadableAuthError(status, payload) {
-  const code = payload?.error?.code || payload?.detail?.error?.code || "";
-  if (status === 401 || status === 403 || code === "auth_required") {
-    if (!localApiKey) {
-      return "Authentification locale activée : renseigne la clé API.";
-    }
-    return "Clé API locale invalide.";
-  }
-  return null;
-}
-
-function toReadableBackendError(payload) {
+function toReadableBackendError(payload, status) {
   const err = payload?.error || {};
   const code = String(err.code || "");
   const message = String(err.message || "");
   const hint = String(err.recovery_hint || "");
   const haystack = `${code} ${message} ${hint}`;
 
+  if (status === 401 || status === 403 || code === "auth_required") {
+    if (!localApiKey) {
+      return {
+        primary: "Authentification locale requise.",
+        detail: "Renseigne la clé API VIVI configurée pour ce backend.",
+      };
+    }
+    return {
+      primary: "Clé API locale invalide.",
+      detail: "Vérifie la clé VIVI saisie dans l'interface.",
+    };
+  }
+
+  if (haystack.includes("lmstudio_unavailable") || haystack.includes("lmstudio_timeout")) {
+    return {
+      primary: "LM Studio est indisponible.",
+      detail: "Vérifie que LM Studio est lancé, que le serveur local est actif et que l'endpoint est correct.",
+    };
+  }
+
   if (
     haystack.includes("lmstudio_model_missing") ||
     haystack.includes("LM Studio model is not configured") ||
     haystack.includes("VIVI_LMSTUDIO_MODEL")
   ) {
-    return "Modèle LM Studio non configuré. Vérifie VIVI_LMSTUDIO_MODEL puis relance le backend.";
+    return {
+      primary: "Modèle LM Studio non configuré.",
+      detail: "Configure VIVI_LMSTUDIO_MODEL avant d'envoyer une requête.",
+      technical: code ? `[${code}]` : "",
+    };
   }
   if (
     haystack.includes("lmstudio_http_error") &&
     haystack.includes("LM Studio returned HTTP 401")
   ) {
-    return "LM Studio refuse la requête avec une erreur 401. Vérifie la configuration d'auth LM Studio et ne confonds pas VIVI_API_KEY avec une clé LM Studio.";
+    return {
+      primary: "LM Studio refuse la requête.",
+      detail: "Si LM Studio demande une clé, configure uniquement VIVI_LMSTUDIO_API_KEY. Ne pas utiliser VIVI_API_KEY pour LM Studio.",
+    };
+  }
+
+  if (status >= 500) {
+    return {
+      primary: "Erreur serveur VIVI.",
+      detail: "Réessaie ou consulte les logs backend si le problème persiste.",
+    };
   }
 
   return null;
+}
+
+function normalizeUiError({ status = 0, payload = null, networkError = null } = {}) {
+  if (networkError) {
+    return {
+      primary: "Impossible de joindre VIVI.",
+      detail: "Vérifie que le backend local est lancé.",
+    };
+  }
+
+  const mapped = toReadableBackendError(payload, status);
+  if (mapped) {
+    return mapped;
+  }
+
+  const err = payload?.error || {};
+  const code = String(err.code || "backend_error");
+  const message = String(err.message || `HTTP ${status || "?"}`);
+  const hint = String(err.recovery_hint || "").trim();
+  const requestId = String(err.request_id || "").trim();
+  const detailBits = [code, message];
+  if (hint) {
+    detailBits.push(hint);
+  }
+  if (requestId) {
+    detailBits.push(`request_id=${requestId}`);
+  }
+  return {
+    primary: "Erreur serveur VIVI.",
+    detail: detailBits.join(" | "),
+  };
 }
 
 function clearError() {
@@ -184,7 +246,7 @@ async function loadRuntime() {
     if (!res.ok) {
       throw new Error(`runtime info HTTP ${res.status}`);
     }
-    const payload = await res.json();
+      const payload = await res.json();
     authEnabled = Boolean(payload.auth_enabled);
     updateAuthPanelVisibility();
     setText("runtime-status", "Runtime OK");
@@ -196,7 +258,10 @@ async function loadRuntime() {
     setText("vault-state", payload.vault?.exists ? "ok" : "absent");
     setText("vault-notes", String(payload.vault?.notes_count ?? "-"));
     if (!providerAvailable) {
-      showError("Provider LM Studio indisponible. Vérifie que LM Studio est lancé avec un modèle chargé.");
+      showNormalizedError({
+        primary: "LM Studio est indisponible.",
+        detail: "Vérifie que LM Studio est lancé, que le serveur local est actif et que l'endpoint est correct.",
+      });
     }
   } catch (err) {
     authEnabled = false;
@@ -205,7 +270,7 @@ async function loadRuntime() {
     setText("backend-state", "erreur");
     setText("vault-state", "-");
     setText("vault-notes", "-");
-    showError(`Erreur runtime: ${err.message || "backend indisponible"}`);
+    showNormalizedError(normalizeUiError({ networkError: err }));
   }
 }
 
@@ -241,20 +306,9 @@ async function sendChat(event) {
     const payload = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      const authMessage = toReadableAuthError(res.status, payload);
-      if (authMessage) {
-        throw new Error(authMessage);
-      }
-      const backendMessage = toReadableBackendError(payload);
-      if (backendMessage) {
-        const backendCode = payload?.error?.code ? ` [${payload.error.code}]` : "";
-        throw new Error(`${backendMessage}${backendCode}`);
-      }
-      const err = payload.error || {};
-      const code = err.code || "backend_error";
-      const msg = err.message || `HTTP ${res.status}`;
-      const hint = err.recovery_hint ? ` (${err.recovery_hint})` : "";
-      throw new Error(`${code}: ${msg}${hint}`);
+      showNormalizedError(normalizeUiError({ status: res.status, payload }));
+      appendMessage("VIVI", "Erreur lors de la requête.");
+      return;
     }
 
     appendMessage("VIVI", payload.answer || "(réponse vide)");
@@ -263,7 +317,7 @@ async function sendChat(event) {
     messageEl.value = "";
   } catch (err) {
     appendMessage("VIVI", "Erreur lors de la requête.");
-    showError(err.message || "Erreur réseau ou backend indisponible.");
+    showNormalizedError(normalizeUiError({ networkError: err }));
   } finally {
     button.disabled = false;
     form.setAttribute("aria-busy", "false");

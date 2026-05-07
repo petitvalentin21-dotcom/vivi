@@ -48,6 +48,14 @@ Tout le reste est post-MVP sauf décision explicite.
 
 ## Backend MVP (FEAT-01)
 
+Configuration locale:
+
+- Copier `.env.example` vers `.env` pour un setup local.
+- Renseigner `VIVI_LMSTUDIO_MODEL` dans `.env`, puis redémarrer le backend.
+- `VIVI_API_KEY` protège l'API VIVI (optionnel).
+- `VIVI_LMSTUDIO_API_KEY` sert uniquement si LM Studio exige une auth.
+- Ne jamais commiter `.env`.
+
 Installation:
 
 ```bash
@@ -122,9 +130,13 @@ Prérequis:
 Variables utiles:
 
 ```bash
-export VIVI_LMSTUDIO_BASE_URL=http://127.0.0.1:1234/v1
+export VIVI_LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 export VIVI_LMSTUDIO_MODEL=google/gemma-4-e4b
 ```
+
+Note base URL:
+
+- `VIVI_LMSTUDIO_BASE_URL` accepte `http://127.0.0.1:1234` ou `http://127.0.0.1:1234/v1`.
 
 Checks rapides:
 

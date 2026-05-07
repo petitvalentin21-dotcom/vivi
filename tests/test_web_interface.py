@@ -36,6 +36,7 @@ def test_root_serves_web_interface() -> None:
     assert 'aria-live="polite"' in response.text
     assert 'aria-label="Envoyer le message"' in response.text
     assert 'aria-label="Rafraîchir le statut runtime"' in response.text
+    assert "Aucune source trouvée pour cette question." in response.text
 
 
 def test_web_static_assets_are_accessible() -> None:
@@ -69,9 +70,9 @@ def test_web_js_handles_local_api_key_without_localstorage() -> None:
     assert "function applyApiKey()" in js.text
     assert "function clearApiKey()" in js.text
     assert "headers.Authorization = `Bearer ${localApiKey}`;" in js.text
-    assert "toReadableAuthError" in js.text
+    assert "normalizeUiError" in js.text
     assert "Clé API locale invalide." in js.text
-    assert "Authentification locale activée : renseigne la clé API." in js.text
+    assert "Authentification locale requise." in js.text
     assert "localStorage" not in js.text
 
 
@@ -102,10 +103,11 @@ def test_web_js_clear_api_key_is_explicit_action() -> None:
 def test_web_js_maps_lmstudio_model_missing_error_to_readable_message() -> None:
     client = TestClient(create_app(Settings()))
     js = client.get("/web/app.js")
-    assert "function toReadableBackendError(payload)" in js.text
+    assert "function toReadableBackendError(payload, status)" in js.text
     assert "lmstudio_model_missing" in js.text
     assert "VIVI_LMSTUDIO_MODEL" in js.text
-    assert "Modèle LM Studio non configuré. Vérifie VIVI_LMSTUDIO_MODEL puis relance le backend." in js.text
+    assert "Modèle LM Studio non configuré." in js.text
+    assert "Configure VIVI_LMSTUDIO_MODEL avant d'envoyer une requête." in js.text
 
 
 def test_web_js_maps_lmstudio_http_401_error_to_readable_message() -> None:
@@ -113,7 +115,28 @@ def test_web_js_maps_lmstudio_http_401_error_to_readable_message() -> None:
     js = client.get("/web/app.js")
     assert "lmstudio_http_error" in js.text
     assert "LM Studio returned HTTP 401" in js.text
-    assert "LM Studio refuse la requête avec une erreur 401." in js.text
+    assert "LM Studio refuse la requête." in js.text
+    assert "VIVI_LMSTUDIO_API_KEY" in js.text
+
+
+def test_web_js_has_uniform_error_labels_for_mvp() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "Authentification locale requise." in js.text
+    assert "Clé API locale invalide." in js.text
+    assert "LM Studio est indisponible." in js.text
+    assert "Modèle LM Studio non configuré." in js.text
+    assert "LM Studio refuse la requête." in js.text
+    assert "Impossible de joindre VIVI." in js.text
+    assert "Erreur serveur VIVI." in js.text
+
+
+def test_web_js_preserves_secondary_technical_details_without_secrets() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "request_id=" in js.text
+    assert "Authorization: Bearer" not in js.text
+    assert "sk-super-secret" not in js.text
 
 
 def test_web_js_chat_uses_authorization_header_when_api_key_is_set() -> None:
