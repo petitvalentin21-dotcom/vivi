@@ -9,9 +9,17 @@ from fastapi.staticfiles import StaticFiles
 from app import __version__
 from app.api.auth import require_api_key
 from app.api.errors import ApiError, api_error_handler, unhandled_error_handler
-from app.api.schemas import ChatRequest, ChatResponse, HealthResponse, KnowledgeSearchResponse, RuntimeInfoResponse
+from app.api.schemas import (
+    ChatRequest,
+    ChatResponse,
+    HealthResponse,
+    KnowledgeSearchResponse,
+    ObsidianInboxCreateRequest,
+    ObsidianInboxCreateResponse,
+    RuntimeInfoResponse,
+)
 from app.config import Settings, ensure_runtime_dirs, load_settings
-from app.knowledge import load_markdown_notes, retrieve_lexical, split_into_chunks
+from app.knowledge import ObsidianInboxError, create_inbox_note, load_markdown_notes, retrieve_lexical, split_into_chunks
 from app.knowledge.sources import Source
 from app.llm import LMStudioClient
 from app.runtime.status import build_runtime_info
@@ -86,6 +94,42 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             results=[_source_api_payload(item) for item in results],
             count=len(results),
             mode="lexical",
+        )
+
+    @app.post(
+        "/obsidian/inbox",
+        response_model=ObsidianInboxCreateResponse,
+        dependencies=[Depends(require_api_key(cfg))],
+    )
+    def obsidian_inbox(payload: ObsidianInboxCreateRequest) -> ObsidianInboxCreateResponse:
+        try:
+            result = create_inbox_note(
+                cfg.knowledge_vault_path,
+                title=payload.title,
+                body=payload.body,
+                note_type=payload.note_type,
+                status=payload.status,
+                related=payload.related,
+                prompt_summary=payload.prompt_summary,
+                confidence=payload.confidence,
+                source_paths=payload.source_paths,
+            )
+        except ObsidianInboxError as exc:
+            raise ApiError(
+                status_code=400,
+                code="invalid_request",
+                message="Obsidian inbox note could not be created.",
+                recovery_hint=str(exc),
+            ) from exc
+
+        return ObsidianInboxCreateResponse(
+            created=True,
+            relative_path=result.relative_path,
+            filename=result.filename,
+            note_type=str(result.frontmatter["type"]),
+            status=str(result.frontmatter["status"]),
+            index=bool(result.frontmatter["index"]),
+            review_required=bool(result.frontmatter["review_required"]),
         )
 
     @app.post("/chat", response_model=ChatResponse, dependencies=[Depends(require_api_key(cfg))])

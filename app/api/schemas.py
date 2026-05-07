@@ -99,3 +99,24 @@ class KnowledgeSearchResponse(BaseModel):
     results: list[KnowledgeSearchResult]
     count: int
     mode: str
+
+
+class ObsidianInboxCreateRequest(BaseModel):
+    title: str
+    body: str
+    note_type: str = "generated_note"
+    status: str = "draft"
+    related: list[str] | None = None
+    prompt_summary: str | None = None
+    confidence: str | None = None
+    source_paths: list[str] | None = None
+
+
+class ObsidianInboxCreateResponse(BaseModel):
+    created: bool
+    relative_path: str
+    filename: str
+    note_type: str
+    status: str
+    index: bool
+    review_required: bool

@@ -85,7 +85,66 @@ Les notes inbox restent non indexées par défaut :
 - par emplacement : `92_inbox/` est exclu du RAG ;
 - par frontmatter : `index: false`.
 
-La FEAT-27 ne modifie pas le RAG et n'ajoute aucune indexation automatique.
+La FEAT-28 ne modifie pas le RAG et n'ajoute aucune indexation automatique.
+
+## Endpoint API
+
+Endpoint explicite :
+
+```text
+POST /obsidian/inbox
+```
+
+Cet endpoint utilise la fonction interne `create_inbox_note(...)`. Il crée une proposition dans `92_inbox/`, sans validation, promotion ni indexation.
+
+Payload minimal :
+
+```json
+{
+  "title": "Synthèse accès LAN",
+  "body": "Contenu proposé à relire."
+}
+```
+
+Payload complet possible :
+
+```json
+{
+  "title": "Synthèse accès LAN",
+  "body": "Contenu proposé à relire.",
+  "note_type": "conversation_summary",
+  "status": "draft",
+  "related": ["VIVI LAN"],
+  "prompt_summary": "Synthèse demandée explicitement par l'utilisateur.",
+  "confidence": "draft",
+  "source_paths": ["docs/LAN_LOCAL_ACCESS.md"]
+}
+```
+
+Réponse :
+
+```json
+{
+  "created": true,
+  "relative_path": "92_inbox/2026-05-07_inbox_synthese-acces-lan.md",
+  "filename": "2026-05-07_inbox_synthese-acces-lan.md",
+  "note_type": "conversation_summary",
+  "status": "draft",
+  "index": false,
+  "review_required": true
+}
+```
+
+La réponse ne renvoie pas le corps complet de la note.
+
+## Auth API
+
+L'endpoint respecte l'auth locale existante :
+
+- si `VIVI_API_KEY` est configurée, fournir `Authorization: Bearer <clé>` ou `X-VIVI-API-Key: <clé>` ;
+- si `VIVI_API_KEY` est vide, le comportement existant du projet est conservé.
+
+Ne pas écrire de clé réelle dans la documentation, les tests ou les notes.
 
 ## Usages
 
@@ -100,11 +159,10 @@ Usages prévus :
 
 ## Limites
 
-FEAT-27 expose uniquement une fonction interne testable.
+FEAT-28 expose uniquement une action API explicite et minimale.
 
 Elle n'ajoute pas :
 
-- endpoint API ;
 - bouton UI ;
 - écriture automatique après chat ;
 - promotion ou validation automatique ;
@@ -112,4 +170,4 @@ Elle n'ajoute pas :
 
 ## Prochaine étape possible
 
-FEAT-28 pourra définir une indexation sélective de notes validées, sous validation humaine explicite.
+FEAT-29 pourra discuter une action UI explicite ou un workflow de validation humaine, sans automatisme implicite.
