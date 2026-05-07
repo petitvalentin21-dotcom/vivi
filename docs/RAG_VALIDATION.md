@@ -1,6 +1,6 @@
 # Validation RAG MVP+
 
-Ce jeu de validation sert a mesurer le RAG lexical avant toute amelioration du moteur. Il ne change pas l'algorithme, le scoring, le backend chat, l'API, l'IHM, le provider LM Studio, les prompts, ni la selection des sources.
+Ce jeu de validation sert a mesurer le RAG lexical et a verifier ses garde-fous MVP. Il ne depend ni de LM Studio, ni d'un modele externe.
 
 ## Fichiers
 
@@ -41,5 +41,10 @@ pytest -q
 
 - Une regression indique que le RAG lexical ne retrouve plus les documents de reference ou retourne des extraits moins utiles.
 - Le cas hors contexte doit rester vide : aucune source forte ne doit etre inventee.
+- Le top K applique une diversification documentaire simple : 2 chunks maximum par chemin lors du premier passage, puis remplissage si aucun autre document pertinent ne suffit.
+- Cette diversification limite la saturation par un seul document, sans changer le scoring ni ajouter de recherche semantique.
+- Chaque source selectionnee recoit un marquage de confiance : `normal` ou `low`.
+- Une source est `low` si son score est inferieur a 3.0 ou inferieur a 35% du meilleur score de la requete.
+- Ce marquage n'est pas un filtre : il sert a signaler les sources faibles sans supprimer agressivement des resultats.
 - Les tests n'appellent pas LM Studio et utilisent une mini-vault temporaire.
 - La fixture est volontairement petite pour servir de baseline stable avant optimisation future.

@@ -170,6 +170,8 @@ def main() -> int:
                 "question": question.question,
                 "expected": question.expected,
                 "sources": [source_to_dict(source) for source in sources],
+                "distinct_paths_count": len({source.path for source in sources}),
+                "low_confidence_count": sum(1 for source in sources if source.is_low_confidence),
                 "score_max": max((source.score for source in sources), default=0),
                 "pertinence": pertinence,
                 "problem": problem,
@@ -233,6 +235,8 @@ def source_to_dict(source: Source) -> dict:
         "title": source.title,
         "section": source.section,
         "score": source.score,
+        "confidence_label": source.confidence_label,
+        "is_low_confidence": source.is_low_confidence,
         "excerpt": " ".join(source.excerpt.split()),
     }
 
@@ -251,8 +255,8 @@ def render_markdown(payload: dict) -> str:
         f"- Questions: {payload['questions_count']}",
         f"- Top K: {payload['top_k']}",
         "",
-        "| ID | Famille | Question | Sources retournées | Score max | Pertinence | Problème observé | Décision |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| ID | Famille | Question | Sources retournées | Documents distincts | Sources faibles | Score max | Pertinence | Problème observé | Décision |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for row in payload["rows"]:
         sources = "<br>".join(
@@ -266,6 +270,8 @@ def render_markdown(payload: dict) -> str:
                     escape_cell(row["family"]),
                     escape_cell(row["question"]),
                     escape_cell(sources or "Aucune"),
+                    str(row["distinct_paths_count"]),
+                    str(row["low_confidence_count"]),
                     str(row["score_max"]),
                     escape_cell(row["pertinence"]),
                     escape_cell(row["problem"]),
@@ -286,6 +292,7 @@ def render_markdown(payload: dict) -> str:
         for idx, source in enumerate(row["sources"], start=1):
             lines.append(f"- Source {idx}: `{source['path']}`")
             lines.append(f"  - Score: {source['score']}")
+            lines.append(f"  - Confiance: {source['confidence_label']}")
             lines.append(f"  - Section: {source['section']}")
             lines.append(f"  - Extrait: {source['excerpt']}")
         lines.append("")

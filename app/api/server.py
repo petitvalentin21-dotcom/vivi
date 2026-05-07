@@ -12,6 +12,7 @@ from app.api.errors import ApiError, api_error_handler, unhandled_error_handler
 from app.api.schemas import ChatRequest, ChatResponse, HealthResponse, KnowledgeSearchResponse, RuntimeInfoResponse
 from app.config import Settings, ensure_runtime_dirs, load_settings
 from app.knowledge import load_markdown_notes, retrieve_lexical, split_into_chunks
+from app.knowledge.sources import Source
 from app.llm import LMStudioClient
 from app.runtime.status import build_runtime_info
 from app.sessions.store import SessionStore
@@ -82,7 +83,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         return KnowledgeSearchResponse(
             query=query,
-            results=[item.__dict__ for item in results],
+            results=[_source_api_payload(item) for item in results],
             count=len(results),
             mode="lexical",
         )
@@ -194,7 +195,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             session_id=session_id,
             provider={"name": "lmstudio", "model": completion.model},
             mode=mode,
-            sources=[item.__dict__ for item in sources],
+            sources=[_source_api_payload(item) for item in sources],
             runtime={"rag_used": rag_used, "sources_count": len(sources), "external_call_used": False},
             error=None,
         )
@@ -212,6 +213,18 @@ def _build_rag_context(sources: list) -> str:
         blocks.append(str(src.chunk_text).strip())
         blocks.append("")
     return "\n".join(blocks).strip()
+
+
+def _source_api_payload(source: Source) -> dict:
+    return {
+        "source_id": source.source_id,
+        "path": source.path,
+        "title": source.title,
+        "section": source.section,
+        "score": source.score,
+        "excerpt": source.excerpt,
+        "chunk_text": source.chunk_text,
+    }
 
 
 app = create_app()

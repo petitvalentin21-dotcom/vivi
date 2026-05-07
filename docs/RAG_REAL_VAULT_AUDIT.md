@@ -2,7 +2,11 @@
 
 ## Statut
 
-Audit FEAT-22 réalisé sur le vault réel `knowledge_vault/`.
+Audit initial FEAT-22 réalisé sur le vault réel `knowledge_vault/`.
+
+Mise à jour FEAT-23 : le RAG lexical applique maintenant une diversification documentaire du top K.
+
+Mise à jour FEAT-24 : le RAG lexical marque les sources faibles avec `confidence_label=low` et `is_low_confidence=true`.
 
 Objectif : observer le comportement du RAG lexical actuel sans modifier le moteur, le scoring, la sélection des sources, le backend, l'API, l'IHM ou les prompts.
 
@@ -11,6 +15,8 @@ Objectif : observer le comportement du RAG lexical actuel sans modifier le moteu
 - Lecture du vault réel avec `load_markdown_notes`.
 - Chunking avec `split_into_chunks`.
 - Recherche avec `retrieve_lexical`.
+- Depuis FEAT-23, sélection finale diversifiée : 2 chunks maximum par chemin lors du premier passage, puis remplissage si aucun autre document pertinent ne suffit.
+- Depuis FEAT-24, confiance faible si score < 3.0 ou score < 35% du meilleur score de la requête.
 - `top_k=5`.
 - Aucun appel LM Studio.
 - Aucune écriture dans `knowledge_vault/`.
@@ -34,13 +40,28 @@ pytest -q
 
 Le RAG lexical retrouve correctement les grandes notes produit et backend lorsque la question contient des termes proches du contenu source : MVP, endpoints, runtime, sources visibles, Obsidian.
 
-Les principales limites observées sont :
+Effet FEAT-23 :
 
-- plusieurs résultats pertinents mais redondants dans le même document ;
+- les requêtes ambiguës comme `MVP` ne sont plus monopolisées par la seule note backend ;
+- plusieurs questions retournent désormais 3 à 4 documents distincts dans le top 5 ;
+- les meilleurs chunks restent en tête ;
+- le cas hors contexte reste vide.
+
+Effet FEAT-24 :
+
+- les sources fortes restent marquées `normal` ;
+- les sources faibles sont visibles dans l'audit sans être filtrées ;
+- `B1` contient 1 source faible sur 5 ;
+- `R2` contient 2 sources faibles sur 5 ;
+- `C1` contient 3 sources faibles sur 5, ce qui confirme que la configuration locale reste un cas à améliorer.
+
+Les principales limites restantes sont :
+
+- le marquage signale les sources faibles mais ne les masque pas encore ;
 - extraits parfois décalés autour du mot-clé au lieu de contenir la réponse complète ;
 - rappel incomplet quand une question vise une information présente hors du vault, par exemple la release candidate ou l'audit UX réel dans `docs/` ;
 - requêtes de configuration locale avec scores faibles malgré une bonne source trouvée ;
-- questions ambiguës dominées par la note backend quand un terme apparaît très souvent.
+- questions ambiguës encore dépendantes des termes exacts disponibles dans le vault.
 
 Le cas hors contexte sans recouvrement lexical est correctement vide.
 
@@ -56,10 +77,10 @@ Le cas hors contexte sans recouvrement lexical est correctement vide.
 | B3 | A quoi sert GET /knowledge/search ? | Section knowledge search | `02_architecture/VIVI — Backend MVP Spec v0.1.md` | 18.0 | bon | Source et extrait utiles | Baseline OK |
 | R1 | Quel est le role du vault Obsidian dans le mode document ? | Cadrage ou spec sur Obsidian/document | `00_product/VIVI_MVP_CADRAGE_v0.1.md` | 23.5 | acceptable | Produit trouvé, backend absent du top 5 | Améliorer rappel multi-doc plus tard |
 | R2 | Quelles sont les limites du RAG lexical actuel ? | Limites lexicales, embeddings/vector DB hors MVP | `00_product/VIVI_MVP_CADRAGE_v0.1.md` | 16.5 | acceptable | Section pertinente présente mais pas en top 1 | Améliorer extraction autour section cible |
-| C1 | Comment configurer VIVI_API_KEY VIVI_LMSTUDIO_API_KEY et VIVI_KNOWLEDGE_VAULT_PATH ? | Variables d'environnement | `02_architecture/VIVI — Backend MVP Spec v0.1.md`, `00_product/VIVI_MVP_CADRAGE_v0.1.md` | 4.0 | incomplet | Source correcte mais mauvais chunks et scores faibles | Prioriser exact match variables/config |
+| C1 | Comment configurer VIVI_API_KEY VIVI_LMSTUDIO_API_KEY et VIVI_KNOWLEDGE_VAULT_PATH ? | Variables d'environnement | `02_architecture/VIVI — Backend MVP Spec v0.1.md`, `00_product/VIVI_MVP_CADRAGE_v0.1.md` | 4.0 | incomplet | Source correcte mais 3 sources marquées faibles | Prioriser exact match variables/config |
 | U1 | Comment l'interface web affiche-t-elle la conversation les sources et le runtime status ? | Cadrage IHM/sources/runtime | `00_product/VIVI_MVP_CADRAGE_v0.1.md`, `02_architecture/VIVI — Backend MVP Spec v0.1.md`, `04_backlog/FEAT-04_backlog_item.md` | 31.0 | acceptable | Sources utiles, mais audit UX réel dans `docs/` non indexé | Clarifier périmètre indexé |
 | H1 | xylophrax qztnombr wugplest | Aucune source | Aucune | 0 | hors contexte correctement vide | Aucun bruit observé | Conserver comme garde-fou |
-| A1 | MVP | Sources produit/backend raisonnables | `02_architecture/VIVI — Backend MVP Spec v0.1.md` uniquement | 42.0 | bruité | Terme très fréquent, top 5 dominé par backend | Prioriser diversité documentaire |
+| A1 | MVP | Sources produit/backend raisonnables | `02_architecture/VIVI — Backend MVP Spec v0.1.md`, `00_product/VIVI_MVP_CADRAGE_v0.1.md`, `VIVI HOME.md` | 42.0 | bon | Plus de monopole backend après FEAT-23 | Baseline diversité OK |
 | A2 | sources | Notes liées aux sources visibles | `00_product/VIVI_MVP_CADRAGE_v0.1.md`, `02_architecture/VIVI — Backend MVP Spec v0.1.md` | 16.0 | bon | Extraits utiles sur sources visibles | Baseline OK |
 | A3 | runtime | Notes backend ou produit runtime | `02_architecture/VIVI — Backend MVP Spec v0.1.md`, `00_product/VIVI_MVP_CADRAGE_v0.1.md` | 15.5 | bon | Source top 1 exacte | Baseline OK |
 | A4 | document | Notes mode document/RAG/cadrage | `00_product/VIVI_MVP_CADRAGE_v0.1.md`, `02_architecture/VIVI — Backend MVP Spec v0.1.md` | 16.0 | acceptable | Sources raisonnables, extrait top 1 trop générique | Améliorer section/extrait |
@@ -70,8 +91,9 @@ Le cas hors contexte sans recouvrement lexical est correctement vide.
 - B2 : `/runtime/info` retourne un extrait directement exploitable : "fournir à l'interface l'état du système" puis les champs attendus.
 - B3 : `/knowledge/search` retourne la section exacte avec `query`, `results`, `source_id`, `path`, `title`, `section`, `score`, `excerpt`.
 - C1 : la configuration locale retourne la spec backend mais pas la section variables d'environnement en tête ; les scores restent bas entre 2.5 et 4.0.
+- C1 après FEAT-24 : 3 sources sur 5 sont marquées `low`, ce qui rend le bruit visible sans filtrage.
 - H1 : la requête hors contexte ne retourne aucune source.
-- A1 : la requête `MVP` retourne cinq chunks backend, ce qui est borné mais peu diversifié.
+- A1 : la requête `MVP` retourne maintenant backend, produit et `VIVI HOME.md`, au lieu de cinq chunks backend.
 
 ## Observations
 
@@ -83,9 +105,11 @@ Le cas hors contexte sans recouvrement lexical est correctement vide.
 
 ### Résultats bruités
 
-- `MVP` est trop générique et favorise plusieurs chunks du même document backend.
+- `MVP` reste générique, mais FEAT-23 limite la saturation par un seul document.
 - Les questions UX remontent des sources utiles mais aussi une note backlog, faute de document UX dans le vault indexé.
-- Les résultats peuvent être redondants : plusieurs chunks du même document occupent le top 5.
+- Les résultats peuvent encore contenir deux chunks d'un même document par design.
+- La diversification peut introduire des sources plus faibles quand peu de documents sont réellement pertinents.
+- Le marquage FEAT-24 identifie ce bruit, mais il reste visible dans les résultats.
 
 ### Résultats incomplets
 
@@ -101,8 +125,9 @@ Le cas hors contexte sans recouvrement lexical est correctement vide.
 
 ## Limites du RAG actuel
 
-- Pas de seuil minimal de score : toute source avec score positif peut être retournée.
-- Pas de diversité documentaire : un même fichier peut saturer le top 5.
+- Pas de filtrage par seuil minimal : toute source avec score positif peut encore être retournée.
+- Marquage de confiance faible uniquement : `low` ne signifie pas faux, mais à vérifier.
+- Diversité documentaire simple uniquement : maximum 2 chunks par chemin au premier passage, puis remplissage.
 - Pas de normalisation sémantique : "release candidate" ne trouve pas un document absent du vault, et les synonymes restent limités.
 - Pas de priorité explicite aux sections exactes par rapport aux chunks riches en tokens.
 - Extraits courts parfois coupés au mauvais endroit.
@@ -110,8 +135,8 @@ Le cas hors contexte sans recouvrement lexical est correctement vide.
 
 ## Améliorations candidates
 
-1. Ajouter une règle de diversité documentaire dans le top K pour éviter cinq chunks du même fichier.
-2. Ajouter un seuil minimal de score ou un indicateur de confiance faible pour limiter les fausses sources faibles.
+1. Exploiter `confidence_label=low` dans l'IHM ou l'audit utilisateur.
+2. Évaluer un filtrage optionnel des sources faibles, seulement après observation.
 3. Améliorer la construction d'extraits autour des headings et phrases complètes.
 4. Renforcer les exact matches sur variables techniques, endpoints et chemins.
 5. Ajouter une option contrôlée d'indexation de certains documents `docs/` ou créer une copie validée dans le vault si le produit doit les interroger.
@@ -120,17 +145,17 @@ Le cas hors contexte sans recouvrement lexical est correctement vide.
 
 ## Priorités recommandées
 
-1. Diversité documentaire du top K.
-2. Seuil de confiance ou marquage `faible confiance`.
-3. Extraits par phrase/section plus lisibles.
-4. Exact match technique pour endpoints, variables `.env` et chemins.
-5. Décision documentaire sur l'indexation des fichiers `docs/`.
+1. Affichage ou usage contrôlé du marquage `low` côté sources.
+2. Extraits par phrase/section plus lisibles.
+3. Exact match technique pour endpoints, variables `.env` et chemins.
+4. Décision documentaire sur l'indexation des fichiers `docs/`.
 
 ## Non-modifications confirmées
 
 - Aucun changement de l'algorithme RAG.
 - Aucun changement du scoring.
-- Aucun changement de sélection des sources.
+- Changement FEAT-23 limité à la sélection finale des sources : diversification documentaire du top K.
+- Changement FEAT-24 limité au marquage de confiance des sources sélectionnées.
 - Aucun changement backend, API, IHM, auth, sessions, provider LM Studio ou prompts système.
 - Aucun embedding ajouté.
 - Aucune vector DB ajoutée.

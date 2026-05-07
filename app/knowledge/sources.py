@@ -12,6 +12,8 @@ class Source:
     score: float
     excerpt: str
     chunk_text: str
+    confidence_label: str = "unknown"
+    is_low_confidence: bool = False
 
 
 @dataclass(frozen=True)

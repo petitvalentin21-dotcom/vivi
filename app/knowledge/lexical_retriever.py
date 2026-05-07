@@ -1,13 +1,22 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import re
 
 from app.knowledge.sources import NoteChunk, Source
 
 _WORD_RE = re.compile(r"[a-z0-9_]+")
+DEFAULT_MAX_CHUNKS_PER_PATH = 2
+LOW_CONFIDENCE_MIN_SCORE = 3.0
+LOW_CONFIDENCE_RATIO = 0.35
 
 
-def retrieve_lexical(query: str, chunks: list[NoteChunk], top_k: int) -> list[Source]:
+def retrieve_lexical(
+    query: str,
+    chunks: list[NoteChunk],
+    top_k: int,
+    max_chunks_per_path: int = DEFAULT_MAX_CHUNKS_PER_PATH,
+) -> list[Source]:
     q = str(query or "").strip().lower()
     if not q:
         return []
@@ -35,7 +44,62 @@ def retrieve_lexical(query: str, chunks: list[NoteChunk], top_k: int) -> list[So
 
     scored.sort(key=lambda item: (-item[0], item[1].path, item[1].section, item[1].source_id))
     limit = max(1, int(top_k))
-    return [item[1] for item in scored[:limit]]
+    selected = _select_diverse_sources(scored, limit, max_chunks_per_path)
+    max_score = scored[0][0] if scored else 0.0
+    return [_with_confidence(source, max_score) for source in selected]
+
+
+def _select_diverse_sources(
+    scored: list[tuple[float, Source]],
+    limit: int,
+    max_chunks_per_path: int,
+) -> list[Source]:
+    if not scored:
+        return []
+
+    normalized_limit = max(1, int(limit))
+    per_path_limit = max(1, int(max_chunks_per_path))
+    selected: list[Source] = []
+    selected_ids: set[str] = set()
+    counts_by_path: dict[str, int] = {}
+
+    for _, source in scored:
+        if len(selected) >= normalized_limit:
+            return selected
+        if counts_by_path.get(source.path, 0) >= per_path_limit:
+            continue
+        selected.append(source)
+        selected_ids.add(source.source_id)
+        counts_by_path[source.path] = counts_by_path.get(source.path, 0) + 1
+
+    for _, source in scored:
+        if len(selected) >= normalized_limit:
+            return selected
+        if source.source_id in selected_ids:
+            continue
+        selected.append(source)
+        selected_ids.add(source.source_id)
+
+    return selected
+
+
+def _with_confidence(source: Source, max_score: float) -> Source:
+    low = _is_low_confidence(source.score, max_score)
+    return replace(
+        source,
+        confidence_label="low" if low else "normal",
+        is_low_confidence=low,
+    )
+
+
+def _is_low_confidence(score: float, max_score: float) -> bool:
+    if score <= 0:
+        return True
+    if score < LOW_CONFIDENCE_MIN_SCORE:
+        return True
+    if max_score <= 0:
+        return False
+    return score < (max_score * LOW_CONFIDENCE_RATIO)
 
 
 def _score_chunk(query: str, tokens: list[str], chunk: NoteChunk) -> float:
