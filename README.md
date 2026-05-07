@@ -26,6 +26,10 @@ Procédure complète de lancement, configuration, validation et diagnostic :
 
 - [docs/MVP_LOCAL_RELEASE.md](docs/MVP_LOCAL_RELEASE.md)
 
+Accès depuis un autre appareil du réseau local :
+
+- [docs/LAN_LOCAL_ACCESS.md](docs/LAN_LOCAL_ACCESS.md)
+
 Trace Release Candidate MVP locale :
 
 - [docs/MVP_RELEASE_CANDIDATE.md](docs/MVP_RELEASE_CANDIDATE.md)
@@ -45,6 +49,8 @@ uvicorn app.api.server:app --host 127.0.0.1 --port 8000
 Ouvrir ensuite :
 
 - http://127.0.0.1:8000/
+
+Pour un accès LAN contrôlé depuis un téléphone, une tablette ou un autre PC du même Wi-Fi, utiliser le guide dédié et lancer explicitement le backend avec `--host 0.0.0.0`. Activer `VIVI_API_KEY` est recommandé en mode LAN.
 
 ## Configuration minimale recommandée
 

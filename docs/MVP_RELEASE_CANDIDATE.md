@@ -23,6 +23,7 @@ VIVI MVP local est considéré Release Candidate si les validations automatisée
 - sécurité API key simple ;
 - smoke backend ;
 - documentation locale ;
+- documentation d'accès LAN local contrôlé ;
 - fonctionnement local-first.
 
 ## 2. Périmètre inclus
@@ -168,6 +169,10 @@ Valider manuellement :
 6. Les sources sont visibles quand le RAG trouve du contexte.
 7. Le reset conversation vide la conversation et repart proprement.
 8. Si `VIVI_API_KEY` est activée, l'IHM demande ou utilise correctement la clé locale.
+
+Pour une validation depuis un autre appareil du même réseau local, suivre le guide dédié :
+
+- [LAN_LOCAL_ACCESS.md](LAN_LOCAL_ACCESS.md)
 
 ## 9. Critères de succès
 
