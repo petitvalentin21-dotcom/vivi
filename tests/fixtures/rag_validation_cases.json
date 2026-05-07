@@ -1,0 +1,68 @@
+{
+  "documents": [
+    {
+      "path": "00_product/VIVI_MVP_CADRAGE_v0.1.md",
+      "content": "# Cadrage produit MVP\n\n## Objectif MVP\n\nL'objectif MVP de VIVI est d'ouvrir une interface web dediee, parler a un modele local via LM Studio, interroger le vault Obsidian, afficher les sources utilisees et fournir une reponse fiable en local-first.\n\n## Vision\n\nVIVI est une IA locale d'assistance personnelle. Je lui parle, elle me repond."
+    },
+    {
+      "path": "02_architecture/VIVI_BACKEND_MVP_SPEC_v0.1.md",
+      "content": "# Backend FastAPI MVP\n\n## Endpoints API\n\nLe backend FastAPI expose GET /health, GET /runtime/info, POST /chat, GET /sessions, DELETE /sessions/{session_id} et GET /knowledge/search. Le contrat runtime indique rag_used, sources_count et external_call_used.\n\n## Erreurs\n\nLes erreurs API restent lisibles et ne doivent jamais exposer de secret."
+    },
+    {
+      "path": "02_architecture/RAG_OBSIDIAN_MVP.md",
+      "content": "# RAG Obsidian lexical\n\n## Role du vault\n\nLe mode document utilise le vault Obsidian comme contexte documentaire. Le retriever lexical retourne des sources visibles avec extrait, chemin, titre et section, puis VIVI ancre sa reponse dans ce contexte.\n\n## Limites MVP\n\nPas d'embeddings, pas de vector DB et pas de reecriture automatique des notes sources."
+    }
+  ],
+  "cases": [
+    {
+      "id": "product_mvp_goal",
+      "comment": "Question cadrage produit",
+      "question": "Quel est l'objectif MVP de VIVI ?",
+      "expected_paths": ["00_product/VIVI_MVP_CADRAGE_v0.1.md"],
+      "expected_excerpt_keywords": ["objectif MVP", "interface web", "LM Studio", "vault Obsidian"],
+      "forbidden_keywords": ["VIVI_API_KEY"],
+      "min_sources": 1,
+      "max_sources": 3
+    },
+    {
+      "id": "backend_api_contract",
+      "comment": "Question backend/API",
+      "question": "Quels endpoints API backend FastAPI exposent runtime info et knowledge search ?",
+      "expected_paths": ["02_architecture/VIVI_BACKEND_MVP_SPEC_v0.1.md"],
+      "expected_excerpt_keywords": ["backend FastAPI", "GET /runtime/info", "GET /knowledge/search", "contrat runtime"],
+      "forbidden_keywords": ["VIVI_API_KEY"],
+      "min_sources": 1,
+      "max_sources": 3
+    },
+    {
+      "id": "rag_obsidian_role",
+      "comment": "Question RAG/Obsidian",
+      "question": "Quel est le role du vault Obsidian dans le mode document RAG ?",
+      "expected_paths": ["02_architecture/RAG_OBSIDIAN_MVP.md"],
+      "expected_excerpt_keywords": ["vault Obsidian", "contexte documentaire", "sources visibles", "extrait"],
+      "forbidden_keywords": ["VIVI_API_KEY"],
+      "min_sources": 1,
+      "max_sources": 3
+    },
+    {
+      "id": "out_of_context",
+      "comment": "Question hors contexte",
+      "question": "xylophrax qztnombr wugplest",
+      "expected_paths": [],
+      "expected_excerpt_keywords": [],
+      "forbidden_keywords": ["00_product", "02_architecture", "LM Studio", "Obsidian"],
+      "min_sources": 0,
+      "max_sources": 0
+    },
+    {
+      "id": "ambiguous_short_question",
+      "comment": "Question courte ou ambigue",
+      "question": "MVP",
+      "expected_paths": ["00_product/VIVI_MVP_CADRAGE_v0.1.md"],
+      "expected_excerpt_keywords": ["objectif MVP"],
+      "forbidden_keywords": ["VIVI_API_KEY"],
+      "min_sources": 1,
+      "max_sources": 2
+    }
+  ]
+}
