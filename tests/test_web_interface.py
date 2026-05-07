@@ -20,6 +20,12 @@ def test_root_serves_web_interface() -> None:
     assert 'id="sources-list"' in response.text
     assert 'id="runtime-status"' in response.text
     assert 'id="refresh-runtime-btn"' in response.text
+    assert "Utiliser VIVI" in response.text
+    assert "Mode chat" in response.text
+    assert "Mode document" in response.text
+    assert "LM Studio" in response.text
+    assert "Sources" in response.text
+    assert 'id="help-list"' in response.text
     assert 'id="security-state"' in response.text
     assert 'id="auth-panel"' in response.text
     assert 'id="api-key-input"' in response.text
