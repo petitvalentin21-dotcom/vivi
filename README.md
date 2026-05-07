@@ -1,205 +1,89 @@
 # VIVI
 
-VIVI est une IA locale d’assistance personnelle.
+VIVI est un assistant IA local personnel.
 
-Objectif MVP :
+Objectif MVP : ouvrir une interface web dédiée, parler à un modèle local servi par LM Studio, interroger le vault Obsidian, voir les sources utilisées et garder un fonctionnement local-first.
 
-- interface web dédiée simple ;
-- discussion avec un modèle local via LM Studio ;
-- interrogation d’un vault Obsidian ;
-- affichage des sources utilisées ;
-- statut runtime clair ;
-- protection simple ;
-- fonctionnement local-first.
+## Statut MVP local
 
-## Statut
+FEAT-01 à FEAT-15 stabilisent le socle MVP local :
 
-Projet recentré en phase de cadrage.
-Socle backend MVP minimal initialisé (FEAT-01).
-
-## Source de vérité
-
-La source de vérité produit et architecture se trouve dans :
-
-- `knowledge_vault/00_product/VIVI_MVP_CADRAGE_v0.1.md`
-
-## Vault Obsidian
-
-Le vault Obsidian du projet est situé dans :
-
-- `knowledge_vault/`
-
-## Règle principale
-
-VIVI est d’abord un assistant local de discussion :
-
-> Je lui parle, elle me répond.
-
-Le MVP doit rester strict :
-
-- interface dédiée ;
-- LM Studio ;
-- chat local ;
-- RAG Obsidian ;
+- backend FastAPI ;
+- `GET /health` ;
+- `GET /runtime/info` ;
+- `POST /chat` en mode `chat` et `document` ;
+- RAG lexical Obsidian ;
 - sources visibles ;
-- runtime status.
+- interface web dédiée ;
+- mémoire de session simple ;
+- reset conversation ;
+- auth locale par clé API si activée ;
+- smoke backend local.
 
-Tout le reste est post-MVP sauf décision explicite.
+## Documentation de lancement
 
-## Backend MVP (FEAT-01)
+Procédure complète de lancement, configuration, validation et diagnostic :
 
-Configuration locale:
+- [docs/MVP_LOCAL_RELEASE.md](docs/MVP_LOCAL_RELEASE.md)
 
-- Copier `.env.example` vers `.env` pour un setup local.
-- Renseigner `VIVI_LMSTUDIO_MODEL` dans `.env`, puis redémarrer le backend.
-- `VIVI_API_KEY` protège l'API VIVI (optionnel).
-- `VIVI_LMSTUDIO_API_KEY` sert uniquement si LM Studio exige une auth.
-- Ne jamais commiter `.env`.
-
-Installation:
+## Installation rapide
 
 ```bash
 pip install -r requirements.txt
-```
-
-Lancer l'API:
-
-```bash
+copy .env.example .env
 uvicorn app.api.server:app --host 127.0.0.1 --port 8000
 ```
 
-Tests:
+Ouvrir ensuite :
+
+- http://127.0.0.1:8000/
+
+## Configuration minimale recommandée
+
+Dans `.env` :
+
+```env
+VIVI_LMSTUDIO_BASE_URL=http://127.0.0.1:1234
+VIVI_LMSTUDIO_MODEL=google/gemma-4-e4b
+VIVI_API_KEY=
+VIVI_LMSTUDIO_API_KEY=
+VIVI_KNOWLEDGE_VAULT_PATH=knowledge_vault
+```
+
+Règles importantes :
+
+- `VIVI_API_KEY` protège l'API VIVI.
+- `VIVI_LMSTUDIO_API_KEY` sert uniquement si LM Studio exige une clé provider.
+- Ne jamais utiliser `VIVI_API_KEY` comme clé provider LM Studio.
+- `.env` est local et ignoré par Git.
+- `.env.example` est versionné et ne doit contenir aucun secret.
+
+## Tests
+
+Tests automatisés :
 
 ```bash
 pytest -q
 ```
 
-Note: LM Studio n'est pas requis pour FEAT-01. `/runtime/info` reste disponible même si LM Studio est indisponible.
-
-## Endpoint chat MVP (FEAT-03)
-
-Appel minimal:
-
-```bash
-curl -X POST http://127.0.0.1:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Bonjour VIVI"}'
-```
-
-Notes:
-
-- Pour un test manuel réel, LM Studio doit être lancé avec un modèle configuré via `VIVI_LMSTUDIO_MODEL`.
-- Les tests automatisés (`pytest -q`) utilisent des mocks et ne nécessitent pas LM Studio réel.
-
-## Endpoint knowledge search MVP (FEAT-04)
-
-Recherche lexicale minimale dans le vault Obsidian:
-
-```bash
-curl "http://127.0.0.1:8000/knowledge/search?q=architecture&top_k=5"
-```
-
-Notes:
-
-- Le RAG de FEAT-04 est lexical (pas d'embeddings, pas de vector DB).
-- Le RAG n'est pas encore branché sur `POST /chat` (prévu FEAT-05).
-
-## Chat documentaire MVP (FEAT-05)
-
-Exemple mode document avec RAG lexical:
-
-```bash
-curl -X POST http://127.0.0.1:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Quels sont les objectifs du MVP ?","mode":"document","max_sources":3}'
-```
-
-Notes:
-
-- `mode=document` (ou `use_rag=true`) active le RAG lexical Obsidian.
-- Les sources utilisées sont retournées dans `sources`.
-- Les tests automatisés restent mockés et ne nécessitent pas LM Studio réel.
-
-## Smoke backend local (FEAT-06)
-
-Prérequis:
-
-- backend lancé (`uvicorn app.api.server:app --host 127.0.0.1 --port 8000`)
-- LM Studio lancé avec un modèle chargé
-
-Variables utiles:
-
-```bash
-export VIVI_LMSTUDIO_BASE_URL=http://127.0.0.1:1234
-export VIVI_LMSTUDIO_MODEL=google/gemma-4-e4b
-```
-
-Note base URL:
-
-- `VIVI_LMSTUDIO_BASE_URL` accepte `http://127.0.0.1:1234` ou `http://127.0.0.1:1234/v1`.
-
-Checks rapides:
-
-```bash
-curl http://127.0.0.1:8000/health
-curl http://127.0.0.1:8000/runtime/info
-```
-
-Smoke script (backend déjà lancé):
+Smoke backend avec LM Studio et le backend déjà lancés :
 
 ```bash
 python scripts/smoke_backend.py --base-url http://127.0.0.1:8000 --verbose
 ```
 
-Si l'auth VIVI est activée:
+Si l'auth VIVI est activée :
 
 ```bash
 python scripts/smoke_backend.py --base-url http://127.0.0.1:8000 --api-key "<VIVI_API_KEY>"
 ```
 
-Options utiles:
+## Sources de vérité
 
-- `--api-key <token>`
-- `--skip-chat`
-- `--skip-document`
-- `--message "Bonjour VIVI"`
-- `--document-message "Quels sont les objectifs du MVP ?"`
+- Produit : `knowledge_vault/00_product/VIVI_MVP_CADRAGE_v0.1.md`
+- Architecture backend : `knowledge_vault/02_architecture/VIVI — Backend MVP Spec v0.1.md`
+- Règles agent : `AGENTS.md`
 
-Le smoke valide: `/health`, `/runtime/info`, `/knowledge/search`, `POST /chat` (mode `chat`) et `POST /chat` (mode `document`), avec résumé `ok/warn/fail` et code retour non-zéro en cas d'échec critique.
+## Hors MVP
 
-Exemple chat simple:
-
-```bash
-curl -X POST http://127.0.0.1:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Bonjour VIVI","mode":"chat"}'
-```
-
-Exemple chat document:
-
-```bash
-curl -X POST http://127.0.0.1:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Quels sont les objectifs du MVP ?","mode":"document","max_sources":3}'
-```
-
-## Interface web locale (FEAT-07)
-
-Lancer le backend:
-
-```bash
-uvicorn app.api.server:app --host 127.0.0.1 --port 8000
-```
-
-Ouvrir l'interface:
-
-- <http://127.0.0.1:8000/>
-
-Rappel LM Studio:
-
-- LM Studio doit être lancé avec un modèle configuré (`VIVI_LMSTUDIO_MODEL`).
-
-Modes disponibles dans l'interface:
-
-- `chat`: conversation simple.
-- `document`: conversation avec RAG lexical et sources quand disponibles.
+Ne pas ajouter au MVP : agents spécialisés, orchestrateur multi-agent, runtime skills, provider registry, fallback externe, embeddings obligatoires, vector DB, cockpit avancé, app mobile, VPN, multi-utilisateur, écriture automatique dans les notes Obsidian sources.
