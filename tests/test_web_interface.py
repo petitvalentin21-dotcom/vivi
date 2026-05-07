@@ -85,6 +85,43 @@ def test_web_js_source_rendering_supports_multiple_sources() -> None:
     assert "list.appendChild(item);" in js.text
 
 
+def test_web_js_renders_assistant_markdown_without_raw_inner_html() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "function renderMarkdownLite(container, content)" in js.text
+    assert 'if (role === "VIVI")' in js.text
+    assert "renderMarkdownLite(body, content);" in js.text
+    assert "body.textContent = content;" in js.text
+    assert "block.innerHTML" not in js.text
+
+
+def test_web_js_supports_simple_markdown_blocks() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "/^(#{1,3})\\s+(.+)$/" in js.text
+    assert "appendMarkdownBlock(container, `h${heading[1].length + 2}`, heading[2]);" in js.text
+    assert "/^[-*]\\s+(.+)$/" in js.text
+    assert "/^\\d+\\.\\s+(.+)$/" in js.text
+    assert 'document.createElement("hr")' in js.text
+
+
+def test_web_js_supports_bold_markdown_with_text_nodes() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "function appendInlineMarkdown(parent, text)" in js.text
+    assert "value.split" in js.text
+    assert 'document.createElement("strong")' in js.text
+    assert "strong.textContent = part.slice(2, -2);" in js.text
+    assert "document.createTextNode(part)" in js.text
+
+
+def test_web_js_falls_back_to_plain_text_if_markdown_rendering_fails() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "} catch (err) {" in js.text
+    assert 'container.textContent = String(content || "");' in js.text
+
+
 def test_web_js_handles_session_id_and_reset() -> None:
     client = TestClient(create_app(Settings()))
     js = client.get("/web/app.js")

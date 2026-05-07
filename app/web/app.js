@@ -31,9 +31,122 @@ function appendMessage(role, content) {
   const block = document.createElement("div");
   const roleClass = role === "Utilisateur" ? "msg-user" : "msg-assistant";
   block.className = `msg ${roleClass}`;
-  block.innerHTML = `<strong>${role}</strong><div>${content}</div>`;
+
+  const label = document.createElement("strong");
+  label.textContent = role;
+
+  const body = document.createElement("div");
+  body.className = "msg-content";
+  if (role === "VIVI") {
+    renderMarkdownLite(body, content);
+  } else {
+    body.textContent = content;
+  }
+
+  block.append(label, body);
   log.appendChild(block);
   log.scrollTop = log.scrollHeight;
+}
+
+function appendInlineMarkdown(parent, text) {
+  const value = String(text || "");
+  const parts = value.split(/(\*\*[^*]+\*\*)/g);
+  parts.forEach((part) => {
+    if (!part) {
+      return;
+    }
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+      const strong = document.createElement("strong");
+      strong.textContent = part.slice(2, -2);
+      parent.appendChild(strong);
+      return;
+    }
+    parent.appendChild(document.createTextNode(part));
+  });
+}
+
+function appendMarkdownBlock(container, tagName, text) {
+  const el = document.createElement(tagName);
+  appendInlineMarkdown(el, text);
+  container.appendChild(el);
+}
+
+function flushMarkdownList(container, listState) {
+  if (!listState.element) {
+    return;
+  }
+  container.appendChild(listState.element);
+  listState.element = null;
+  listState.type = "";
+}
+
+function renderMarkdownLite(container, content) {
+  try {
+    const text = String(content || "");
+    const lines = text.replace(/\r\n/g, "\n").split("\n");
+    const paragraphLines = [];
+    const listState = { element: null, type: "" };
+
+    function flushParagraph() {
+      if (!paragraphLines.length) {
+        return;
+      }
+      flushMarkdownList(container, listState);
+      appendMarkdownBlock(container, "p", paragraphLines.join(" "));
+      paragraphLines.length = 0;
+    }
+
+    lines.forEach((rawLine) => {
+      const line = rawLine.trim();
+      if (!line) {
+        flushParagraph();
+        flushMarkdownList(container, listState);
+        return;
+      }
+
+      if (line === "---" || line === "***") {
+        flushParagraph();
+        flushMarkdownList(container, listState);
+        container.appendChild(document.createElement("hr"));
+        return;
+      }
+
+      const heading = /^(#{1,3})\s+(.+)$/.exec(line);
+      if (heading) {
+        flushParagraph();
+        flushMarkdownList(container, listState);
+        appendMarkdownBlock(container, `h${heading[1].length + 2}`, heading[2]);
+        return;
+      }
+
+      const unordered = /^[-*]\s+(.+)$/.exec(line);
+      const ordered = /^\d+\.\s+(.+)$/.exec(line);
+      if (unordered || ordered) {
+        flushParagraph();
+        const type = ordered ? "ol" : "ul";
+        if (!listState.element || listState.type !== type) {
+          flushMarkdownList(container, listState);
+          listState.element = document.createElement(type);
+          listState.type = type;
+        }
+        const item = document.createElement("li");
+        appendInlineMarkdown(item, (ordered || unordered)[1]);
+        listState.element.appendChild(item);
+        return;
+      }
+
+      paragraphLines.push(line);
+    });
+
+    flushParagraph();
+    flushMarkdownList(container, listState);
+
+    if (!container.childNodes.length && text) {
+      container.textContent = text;
+    }
+  } catch (err) {
+    container.textContent = String(content || "");
+  }
 }
 
 function showError(text) {
