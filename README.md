@@ -26,6 +26,10 @@ Procédure complète de lancement, configuration, validation et diagnostic :
 
 - [docs/MVP_LOCAL_RELEASE.md](docs/MVP_LOCAL_RELEASE.md)
 
+Trace Release Candidate MVP locale :
+
+- [docs/MVP_RELEASE_CANDIDATE.md](docs/MVP_RELEASE_CANDIDATE.md)
+
 ## Installation rapide
 
 ```bash
