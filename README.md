@@ -151,6 +151,12 @@ Smoke script (backend déjà lancé):
 python scripts/smoke_backend.py --base-url http://127.0.0.1:8000 --verbose
 ```
 
+Si l'auth VIVI est activée:
+
+```bash
+python scripts/smoke_backend.py --base-url http://127.0.0.1:8000 --api-key "<VIVI_API_KEY>"
+```
+
 Options utiles:
 
 - `--api-key <token>`
@@ -158,6 +164,8 @@ Options utiles:
 - `--skip-document`
 - `--message "Bonjour VIVI"`
 - `--document-message "Quels sont les objectifs du MVP ?"`
+
+Le smoke valide: `/health`, `/runtime/info`, `/knowledge/search`, `POST /chat` (mode `chat`) et `POST /chat` (mode `document`), avec résumé `ok/warn/fail` et code retour non-zéro en cas d'échec critique.
 
 Exemple chat simple:
 
