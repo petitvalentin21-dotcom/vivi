@@ -25,6 +25,7 @@ def build_runtime_info(settings: Settings) -> RuntimeInfo:
     provider_client = LMStudioClient(
         base_url=settings.lmstudio_base_url,
         model=settings.lmstudio_model,
+        api_key=settings.lmstudio_api_key,
         timeout_seconds=settings.llm_timeout_seconds,
     )
     provider = provider_client.get_provider_status().__dict__

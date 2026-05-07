@@ -73,3 +73,51 @@ def test_web_js_handles_local_api_key_without_localstorage() -> None:
     assert "Clé API locale invalide." in js.text
     assert "Authentification locale activée : renseigne la clé API." in js.text
     assert "localStorage" not in js.text
+
+
+def test_web_js_reset_conversation_does_not_clear_api_key() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "function resetConversation()" in js.text
+    assert "setCurrentSessionId(\"\");" in js.text
+    assert "Conversation réinitialisée localement." in js.text
+
+
+def test_web_js_reset_conversation_function_does_not_call_clear_api_key() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    body = js.text.split("function resetConversation()", 1)[1].split("window.addEventListener", 1)[0]
+    assert "clearApiKey(" not in body
+    assert "localApiKey = """ not in body
+
+
+def test_web_js_clear_api_key_is_explicit_action() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "function clearApiKey()" in js.text
+    assert "localApiKey = \"\";" in js.text
+    assert 'document.getElementById("clear-api-key-btn").addEventListener("click", clearApiKey);' in js.text
+
+
+def test_web_js_maps_lmstudio_model_missing_error_to_readable_message() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "function toReadableBackendError(payload)" in js.text
+    assert "lmstudio_model_missing" in js.text
+    assert "VIVI_LMSTUDIO_MODEL" in js.text
+    assert "Modèle LM Studio non configuré. Vérifie VIVI_LMSTUDIO_MODEL puis relance le backend." in js.text
+
+
+def test_web_js_maps_lmstudio_http_401_error_to_readable_message() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "lmstudio_http_error" in js.text
+    assert "LM Studio returned HTTP 401" in js.text
+    assert "LM Studio refuse la requête avec une erreur 401." in js.text
+
+
+def test_web_js_chat_uses_authorization_header_when_api_key_is_set() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "headers: authHeaders({ \"Content-Type\": \"application/json\" })," in js.text
+    assert "headers.Authorization = `Bearer ${localApiKey}`;" in js.text

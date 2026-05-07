@@ -106,6 +106,30 @@ function toReadableAuthError(status, payload) {
   return null;
 }
 
+function toReadableBackendError(payload) {
+  const err = payload?.error || {};
+  const code = String(err.code || "");
+  const message = String(err.message || "");
+  const hint = String(err.recovery_hint || "");
+  const haystack = `${code} ${message} ${hint}`;
+
+  if (
+    haystack.includes("lmstudio_model_missing") ||
+    haystack.includes("LM Studio model is not configured") ||
+    haystack.includes("VIVI_LMSTUDIO_MODEL")
+  ) {
+    return "Modèle LM Studio non configuré. Vérifie VIVI_LMSTUDIO_MODEL puis relance le backend.";
+  }
+  if (
+    haystack.includes("lmstudio_http_error") &&
+    haystack.includes("LM Studio returned HTTP 401")
+  ) {
+    return "LM Studio refuse la requête avec une erreur 401. Vérifie la configuration d'auth LM Studio et ne confonds pas VIVI_API_KEY avec une clé LM Studio.";
+  }
+
+  return null;
+}
+
 function clearError() {
   const box = document.getElementById("error-box");
   box.textContent = "";
@@ -220,6 +244,11 @@ async function sendChat(event) {
       const authMessage = toReadableAuthError(res.status, payload);
       if (authMessage) {
         throw new Error(authMessage);
+      }
+      const backendMessage = toReadableBackendError(payload);
+      if (backendMessage) {
+        const backendCode = payload?.error?.code ? ` [${payload.error.code}]` : "";
+        throw new Error(`${backendMessage}${backendCode}`);
       }
       const err = payload.error || {};
       const code = err.code || "backend_error";

@@ -157,6 +157,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         client = LMStudioClient(
             base_url=cfg.lmstudio_base_url,
             model=cfg.lmstudio_model,
+            api_key=cfg.lmstudio_api_key,
             timeout_seconds=cfg.llm_timeout_seconds,
         )
         completion, err = client.chat_completion(

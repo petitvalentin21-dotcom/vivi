@@ -8,6 +8,7 @@ def test_default_config_values(monkeypatch) -> None:
         "VIVI_API_KEY",
         "VIVI_LMSTUDIO_BASE_URL",
         "VIVI_LMSTUDIO_MODEL",
+        "VIVI_LMSTUDIO_API_KEY",
         "VIVI_LLM_TIMEOUT_SECONDS",
         "VIVI_KNOWLEDGE_VAULT_PATH",
         "VIVI_SESSION_STORE_PATH",
@@ -21,7 +22,10 @@ def test_default_config_values(monkeypatch) -> None:
     settings = load_settings()
     assert settings.host == "127.0.0.1"
     assert settings.port == 8000
+    assert settings.api_key == ""
     assert settings.lmstudio_base_url == "http://localhost:1234/v1"
+    assert settings.lmstudio_model == ""
+    assert settings.lmstudio_api_key == ""
     assert settings.llm_timeout_seconds == 60.0
     assert settings.knowledge_vault_path == "knowledge_vault"
     assert settings.session_store_path == "data/runtime/sessions.json"

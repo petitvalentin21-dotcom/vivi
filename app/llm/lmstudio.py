@@ -40,9 +40,10 @@ class LMStudioCompletionResult:
 class LMStudioClient:
     provider_name = "lmstudio"
 
-    def __init__(self, *, base_url: str, model: str, timeout_seconds: float) -> None:
+    def __init__(self, *, base_url: str, model: str, api_key: str = "", timeout_seconds: float) -> None:
         self.base_url = str(base_url or "http://localhost:1234/v1").rstrip("/")
         self.model = str(model or "").strip()
+        self.api_key = str(api_key or "").strip()
         self.timeout_seconds = float(timeout_seconds)
 
     def list_models(self) -> tuple[list[str], LMStudioError | None]:
@@ -244,8 +245,9 @@ class LMStudioClient:
 
     def _get_json(self, path: str) -> dict[str, Any]:
         url = self._build_url(path)
+        headers = self._outbound_headers()
         try:
-            response = httpx.get(url, timeout=self.timeout_seconds)
+            response = httpx.get(url, headers=headers, timeout=self.timeout_seconds)
         except httpx.TimeoutException as exc:
             raise LMStudioRequestException(
                 self._error(
@@ -269,8 +271,9 @@ class LMStudioClient:
 
     def _post_json(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         url = self._build_url(path)
+        headers = self._outbound_headers()
         try:
-            response = httpx.post(url, json=payload, timeout=self.timeout_seconds)
+            response = httpx.post(url, json=payload, headers=headers, timeout=self.timeout_seconds)
         except httpx.TimeoutException as exc:
             raise LMStudioRequestException(
                 self._error(
@@ -294,11 +297,17 @@ class LMStudioClient:
 
     def _parse_response(self, response: httpx.Response) -> dict[str, Any]:
         if response.status_code >= 400:
+            recovery_hint = "Verify LM Studio endpoint and model setup."
+            if response.status_code == 401:
+                recovery_hint = (
+                    "Verify LM Studio auth configuration. "
+                    "Use VIVI_LMSTUDIO_API_KEY if LM Studio requires authentication."
+                )
             raise LMStudioRequestException(
                 self._error(
                     code="lmstudio_http_error",
                     message=f"LM Studio returned HTTP {response.status_code}.",
-                    recovery_hint="Verify LM Studio endpoint and model setup.",
+                    recovery_hint=recovery_hint,
                     status_code=502,
                 )
             )
@@ -327,6 +336,12 @@ class LMStudioClient:
 
     def _build_url(self, path: str) -> str:
         return f"{self.base_url}/{path.lstrip('/')}"
+
+    def _outbound_headers(self) -> dict[str, str]:
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
 
     def _error(self, *, code: str, message: str, recovery_hint: str, status_code: int) -> LMStudioError:
         return LMStudioError(code=code, message=message, recovery_hint=recovery_hint, status_code=status_code)

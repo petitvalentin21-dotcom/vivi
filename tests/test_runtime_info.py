@@ -40,6 +40,23 @@ def test_runtime_info_does_not_expose_api_key(tmp_path: Path) -> None:
     assert secret not in str(payload)
 
 
+def test_runtime_info_does_not_expose_lmstudio_api_key(tmp_path: Path) -> None:
+    vault = tmp_path / "knowledge_vault"
+    vault.mkdir(parents=True)
+
+    secret = "lmstudio-super-secret"
+    settings = Settings(
+        lmstudio_api_key=secret,
+        knowledge_vault_path=str(vault),
+        session_store_path=str(tmp_path / "runtime" / "sessions.json"),
+    )
+    app = create_app(settings)
+    client = TestClient(app)
+
+    payload = client.get("/runtime/info").json()
+    assert secret not in str(payload)
+
+
 def test_runtime_info_counts_vault_notes(tmp_path: Path) -> None:
     vault = tmp_path / "knowledge_vault"
     vault.mkdir(parents=True)

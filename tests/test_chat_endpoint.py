@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import httpx
 from fastapi.testclient import TestClient
 
 from app.api.server import create_app
@@ -185,3 +186,62 @@ def test_chat_unknown_session_returns_session_not_found(monkeypatch, tmp_path: P
     response = client.post("/chat", json={"message": "Salut", "session_id": "unknown"})
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "session_not_found"
+
+
+def test_chat_does_not_forward_vivi_authorization_to_lmstudio(monkeypatch, tmp_path: Path) -> None:
+    captured = {}
+
+    def fake_post(url, json, headers, timeout):
+        captured["headers"] = headers
+        return httpx.Response(
+            200,
+            json={
+                "model": "local-model",
+                "choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}],
+            },
+        )
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    client = TestClient(create_app(_settings(tmp_path, api_key="vivi-secret")))
+
+    response = client.post(
+        "/chat",
+        json={"message": "Salut"},
+        headers={"Authorization": "Bearer vivi-secret"},
+    )
+    assert response.status_code == 200
+    assert captured["headers"]["Content-Type"] == "application/json"
+    assert captured["headers"].get("Authorization") is None
+
+
+def test_chat_uses_only_dedicated_lmstudio_api_key_for_provider_auth(monkeypatch, tmp_path: Path) -> None:
+    captured = {}
+
+    def fake_post(url, json, headers, timeout):
+        captured["headers"] = headers
+        return httpx.Response(
+            200,
+            json={
+                "model": "local-model",
+                "choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}],
+            },
+        )
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    settings = Settings(
+        api_key="vivi-secret",
+        lmstudio_model="local-model",
+        lmstudio_api_key="lmstudio-secret",
+        session_store_path=str(tmp_path / "runtime" / "sessions.json"),
+        knowledge_vault_path=str(tmp_path / "knowledge_vault"),
+    )
+    client = TestClient(create_app(settings))
+
+    response = client.post(
+        "/chat",
+        json={"message": "Salut"},
+        headers={"Authorization": "Bearer vivi-secret"},
+    )
+    assert response.status_code == 200
+    assert captured["headers"].get("Authorization") == "Bearer lmstudio-secret"
+    assert captured["headers"].get("Authorization") != "Bearer vivi-secret"

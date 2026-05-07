@@ -68,9 +68,10 @@ def test_healthcheck_signals_configured_model_absent(monkeypatch) -> None:
 def test_chat_completion_posts_expected_payload(monkeypatch) -> None:
     captured = {}
 
-    def fake_post(url, json, timeout):
+    def fake_post(url, json, headers, timeout):
         captured["url"] = url
         captured["json"] = json
+        captured["headers"] = headers
         captured["timeout"] = timeout
         return httpx.Response(
             200,
@@ -89,6 +90,35 @@ def test_chat_completion_posts_expected_payload(monkeypatch) -> None:
     assert captured["url"].endswith("/chat/completions")
     assert captured["json"]["model"] == "model-a"
     assert captured["json"]["messages"][0]["content"] == "hi"
+    assert captured["headers"]["Content-Type"] == "application/json"
+    assert "Authorization" not in captured["headers"]
+
+
+def test_chat_completion_uses_dedicated_lmstudio_api_key_for_authorization(monkeypatch) -> None:
+    captured = {}
+
+    def fake_post(url, json, headers, timeout):
+        captured["headers"] = headers
+        return httpx.Response(
+            200,
+            json={
+                "model": "model-a",
+                "choices": [{"message": {"content": "hello"}, "finish_reason": "stop"}],
+            },
+        )
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    client = LMStudioClient(
+        base_url="http://localhost:1234/v1",
+        model="model-a",
+        api_key="lmstudio-secret",
+        timeout_seconds=7,
+    )
+
+    result, err = client.chat_completion(messages=[{"role": "user", "content": "hi"}])
+    assert err is None
+    assert result is not None
+    assert captured["headers"]["Authorization"] == "Bearer lmstudio-secret"
 
 
 def test_chat_completion_extracts_choices_content(monkeypatch) -> None:
@@ -174,3 +204,17 @@ def test_errors_do_not_leak_api_key(monkeypatch) -> None:
     assert err is not None
     assert secret not in err.message
     assert secret not in err.recovery_hint
+
+
+def test_http_401_returns_auth_specific_recovery_hint(monkeypatch) -> None:
+    def fake_post(*args, **kwargs):
+        return httpx.Response(401, json={"error": "unauthorized"})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    client = LMStudioClient(base_url="http://localhost:1234/v1", model="model-a", timeout_seconds=5)
+
+    result, err = client.chat_completion(messages=[{"role": "user", "content": "x"}])
+    assert result is None
+    assert err is not None
+    assert err.code == "lmstudio_http_error"
+    assert "VIVI_LMSTUDIO_API_KEY" in err.recovery_hint
