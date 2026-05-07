@@ -6,6 +6,8 @@ Statut : audit documentaire FEAT-25, lecture seule.
 
 Cet audit décrit l'état actuel de `knowledge_vault/` avant toute évolution d'écriture IA ou de mémoire projet. Aucune note du vault, aucun dossier Obsidian, aucun frontmatter et aucune configuration Obsidian n'ont été modifiés.
 
+Gouvernance associée : [OBSIDIAN_WRITE_GOVERNANCE.md](OBSIDIAN_WRITE_GOVERNANCE.md).
+
 ## 2. Méthode utilisée
 
 Méthode :
