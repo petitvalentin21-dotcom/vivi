@@ -111,11 +111,14 @@ def _parse_scalar(value: str):
 
 
 def _metadata_index_false(metadata: dict) -> bool:
-    value = metadata.get("index")
-    if isinstance(value, bool):
-        return value is False
-    if isinstance(value, str):
-        return value.strip().lower() == "false"
+    for key in ("index", "llm_index"):
+        value = metadata.get(key)
+        if isinstance(value, bool):
+            if value is False:
+                return True
+        if isinstance(value, str):
+            if value.strip().lower() == "false":
+                return True
     return False
 
 

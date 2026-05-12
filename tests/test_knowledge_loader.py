@@ -46,6 +46,43 @@ def test_loader_ignores_index_false(tmp_path: Path) -> None:
     assert "Visible" in titles
 
 
+def test_loader_ignores_llm_index_false(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "01_user_docs" / "off.md",
+        "---\nllm_index: false\ntitle: Hidden LLM\n---\n# Hidden\nsecret",
+    )
+    _write(tmp_path / "01_user_docs" / "on.md", "---\nllm_index: true\n---\n# Visible LLM")
+
+    _, notes, _ = load_markdown_notes(str(tmp_path))
+    titles = {n.title for n in notes}
+    assert "Hidden LLM" not in titles
+    assert "Visible LLM" in titles
+
+
+def test_loader_llm_index_true_does_not_override_folder_scope(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "00_navigation" / "taxonomy.md",
+        "---\nllm_index: true\ntitle: Taxonomy\n---\n# Taxonomy",
+    )
+    _write(tmp_path / "00_product" / "normal.md", "---\nllm_index: true\n---\n# Normal")
+
+    _, notes, _ = load_markdown_notes(str(tmp_path))
+
+    assert [note.path for note in notes] == ["00_product/normal.md"]
+
+
+def test_loader_keeps_coherent_count_with_index_aliases(tmp_path: Path) -> None:
+    _write(tmp_path / "00_product" / "normal.md", "# Normal")
+    _write(tmp_path / "01_user_docs" / "legacy-off.md", "---\nindex: false\n---\n# Legacy Off")
+    _write(tmp_path / "02_architecture" / "llm-off.md", "---\nllm_index: false\n---\n# LLM Off")
+    _write(tmp_path / "00_navigation" / "llm-on.md", "---\nllm_index: true\n---\n# Navigation")
+
+    _, notes, _ = load_markdown_notes(str(tmp_path))
+
+    assert len(notes) == 1
+    assert notes[0].path == "00_product/normal.md"
+
+
 def test_loader_extracts_title_from_frontmatter_then_h1_then_filename(tmp_path: Path) -> None:
     _write(tmp_path / "04_backlog" / "front.md", "---\ntitle: Front Title\n---\n# H1")
     _write(tmp_path / "04_backlog" / "h1.md", "# H1 Title\ntext")

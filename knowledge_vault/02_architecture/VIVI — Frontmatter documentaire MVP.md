@@ -119,13 +119,34 @@ Règles:
 Compatibilité runtime actuelle:
 
 - Le loader actuel exclut déjà les dossiers `90_generated`, `91_runtime`, `92_inbox` et `99_archive`.
-- Le loader actuel comprend `index: false` comme exclusion explicite.
-- Pour une exclusion immédiate, utiliser temporairement les deux champs:
+- Le loader comprend `llm_index: false` comme exclusion explicite.
+- Le loader comprend aussi `index: false` comme exclusion explicite pour compatibilité.
+- `llm_index: true` exprime une intention documentaire, mais ne force pas l'indexation si la note se trouve dans un dossier hors périmètre.
+- Les dossiers hors périmètre restent contrôlés par la configuration du loader.
+- Pour une exclusion compatible, `llm_index: false` suffit dans le standard actuel; `index: false` reste accepté pour les notes historiques.
 
 ```yaml
 llm_index: false
-index: false
 ```
+
+## Périmètre de dossiers
+
+Le loader RAG MVP indexe les dossiers documentaires suivants:
+
+- `00_product/`
+- `01_user_docs/`
+- `02_architecture/`
+- `03_decisions/`
+- `04_backlog/`
+- `05_runs/`
+
+Décision: `00_navigation/` reste hors index.
+
+Conséquences:
+
+- les notes de navigation, hubs et taxonomies ne remontent pas directement comme sources RAG ;
+- les documents de fond restent les sources privilégiées ;
+- les hubs peuvent continuer à pointer vers les documents utiles via liens Obsidian.
 
 ### llm_role
 

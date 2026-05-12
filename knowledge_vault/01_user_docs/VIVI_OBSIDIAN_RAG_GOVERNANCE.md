@@ -28,7 +28,7 @@ Référence actuelle:
 
 - [[02_architecture/VIVI — Frontmatter documentaire MVP]]
 
-Le standard documentaire VIVI MVP utilise `llm_index` pour exprimer l'intention d'indexation. Le runtime actuel comprend aussi `index: false` pour exclure une note du retrieval; utiliser les deux champs ensemble pour les notes à exclure tant que le loader n'a pas été étendu.
+Le standard documentaire VIVI MVP utilise `llm_index` pour exprimer l'intention d'indexation. Le runtime comprend désormais `llm_index: false` comme exclusion stricte, équivalente à `index: false`.
 
 ```yaml
 ---
@@ -47,7 +47,11 @@ index: true
 
 Règles:
 
+- `llm_index: false` exclut la note du retrieval.
 - `index: false` exclut la note du retrieval.
+- `index: false` reste supporté pour compatibilité.
+- `llm_index: true` exprime une intention documentaire, mais ne force pas l'indexation si la note se trouve dans un dossier hors périmètre.
+- Les dossiers hors périmètre restent contrôlés par la configuration du loader.
 - `title` doit être descriptif et stable.
 - `tags` courts et normalisés.
 
@@ -86,12 +90,31 @@ Règles:
 
 ## Exclusions recommandées
 
-Exclure de l'index via `index: false` ou zone dédiée:
+Exclure de l'index via `llm_index: false`, `index: false` ou zone dédiée:
 
 - brouillons bruyants ;
 - dumps runtime volumineux ;
 - archives historiques non opérationnelles ;
 - contenus incomplets sans statut.
+
+## Dossiers indexés
+
+Le loader indexe les dossiers documentaires de fond du MVP:
+
+- `00_product/`
+- `01_user_docs/`
+- `02_architecture/`
+- `03_decisions/`
+- `04_backlog/`
+- `05_runs/`
+
+Décision actuelle: `00_navigation/` reste hors index.
+
+Raison:
+
+- les hubs, taxonomies et cartes de navigation peuvent polluer les réponses ;
+- les documents restent accessibles par liens Obsidian depuis les hubs indexés ;
+- le retrieval lexical doit privilégier les documents de fond comme sources.
 
 ## Niveaux de trust documentaire
 
