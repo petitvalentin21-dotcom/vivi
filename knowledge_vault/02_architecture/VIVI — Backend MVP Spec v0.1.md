@@ -1,3 +1,21 @@
+---
+title: VIVI — Backend MVP Spec v0.1
+status: validated
+doc_type: architecture
+scope: mvp
+llm_index: true
+llm_role: architecture
+llm_priority: high
+updated: 2026-05-12
+tags:
+  - vivi
+  - mvp
+  - backend
+  - fastapi
+  - lm-studio
+  - rag
+---
+
 ## 1. Statut du document
 
 Ce document définit la spécification technique du backend MVP de VIVI.

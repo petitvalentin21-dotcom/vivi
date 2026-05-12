@@ -1,3 +1,21 @@
+---
+title: VIVI MVP — Architecture réelle
+status: active
+doc_type: architecture
+scope: mvp
+llm_index: true
+llm_role: architecture
+llm_priority: high
+updated: 2026-05-12
+tags:
+  - vivi
+  - mvp
+  - architecture
+  - runtime
+  - fastapi
+  - rag
+---
+
 # VIVI MVP — Architecture réelle (code validé)
 
 ## Scope

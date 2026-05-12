@@ -1,3 +1,20 @@
+---
+title: VIVI MVP — Principes produit opératoires
+status: active
+doc_type: product
+scope: mvp
+llm_index: true
+llm_role: product
+llm_priority: high
+updated: 2026-05-12
+tags:
+  - vivi
+  - mvp
+  - produit
+  - principes
+  - local-first
+---
+
 # VIVI MVP — Principes produit opératoires
 
 ## Vision active

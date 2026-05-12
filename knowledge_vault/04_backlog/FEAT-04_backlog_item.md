@@ -1,3 +1,20 @@
+---
+title: FEAT-04 — Backlog RAG Obsidian lexical minimal
+status: archived
+doc_type: backlog
+scope: mvp
+llm_index: true
+llm_role: backlog
+llm_priority: medium
+updated: 2026-05-12
+tags:
+  - vivi
+  - mvp
+  - backlog
+  - rag
+  - obsidian
+---
+
 # FEAT-04 — Backlog suivant
 
 - ID: FEAT-04

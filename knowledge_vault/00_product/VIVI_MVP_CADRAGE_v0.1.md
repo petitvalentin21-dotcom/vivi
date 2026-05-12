@@ -1,3 +1,20 @@
+---
+title: VIVI MVP — Cadrage produit v0.1
+status: validated
+doc_type: product
+scope: mvp
+llm_index: true
+llm_role: source_of_truth
+llm_priority: high
+updated: 2026-05-12
+tags:
+  - vivi
+  - mvp
+  - produit
+  - cadrage
+  - local-first
+---
+
 ## 1. Statut du document
 
 Ce document définit le cadrage produit du MVP de VIVI.

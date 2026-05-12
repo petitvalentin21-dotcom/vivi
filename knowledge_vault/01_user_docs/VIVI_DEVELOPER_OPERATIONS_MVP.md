@@ -1,3 +1,21 @@
+---
+title: VIVI MVP — Guide développeur opérationnel
+status: active
+doc_type: developer-guide
+scope: mvp
+llm_index: true
+llm_role: developer_guide
+llm_priority: high
+updated: 2026-05-12
+tags:
+  - vivi
+  - mvp
+  - developpement
+  - runbook
+  - tests
+  - smoke
+---
+
 # VIVI MVP — Guide développeur opérationnel
 
 ## Démarrage minimal
