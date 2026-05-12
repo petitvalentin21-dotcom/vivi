@@ -23,6 +23,8 @@ def test_root_serves_web_interface() -> None:
     assert 'class="panel conversation-panel"' in response.text
     assert 'class="panel help-panel"' in response.text
     assert 'class="panel runtime-panel"' in response.text
+    assert 'class="panel memory-panel"' in response.text
+    assert '<summary id="memory-title">Mémoire VIVI</summary>' in response.text
     assert '<summary id="help-title">Utiliser VIVI</summary>' in response.text
     assert '<summary id="runtime-title">État local</summary>' in response.text
     assert "<details" in response.text
@@ -44,6 +46,17 @@ def test_root_serves_web_interface() -> None:
     assert 'id="clear-api-key-btn"' in response.text
     assert 'id="session-status"' in response.text
     assert 'id="reset-conversation-btn"' in response.text
+    assert 'id="memory-info-btn"' in response.text
+    assert 'id="memory-improvement-btn"' in response.text
+    assert 'id="inbox-capture-form"' in response.text
+    assert 'id="memory-info-fields"' in response.text
+    assert 'id="memory-improvement-fields"' in response.text
+    assert 'id="inbox-capture-status"' in response.text
+    assert 'id="inbox-capture-error"' in response.text
+    assert 'id="copy-inbox-path-btn"' in response.text
+    assert "Mémoriser une information" in response.text
+    assert "Proposer une amélioration" in response.text
+    assert "Créer une note candidate dans Obsidian Inbox" in response.text
     assert 'role="log"' in response.text
     assert 'role="alert"' in response.text
     assert 'aria-live="polite"' in response.text
@@ -59,6 +72,7 @@ def test_web_layout_prioritizes_conversation_before_help_and_runtime() -> None:
 
     assert html.index('class="panel conversation-panel"') < html.index('class="panel help-panel"')
     assert html.index('class="panel conversation-panel"') < html.index('class="panel runtime-panel"')
+    assert html.index('class="panel conversation-panel"') < html.index('class="panel memory-panel"')
 
 
 def test_web_css_gives_conversation_more_room() -> None:
@@ -69,6 +83,8 @@ def test_web_css_gives_conversation_more_room() -> None:
     assert "max-height: min(58vh, 620px);" in css.text
     assert ".help-panel summary" in css.text
     assert ".runtime-panel summary" in css.text
+    assert ".memory-panel summary" in css.text
+    assert ".inbox-capture-form" in css.text
 
 
 def test_web_static_assets_are_accessible() -> None:
@@ -237,3 +253,84 @@ def test_web_js_chat_uses_authorization_header_when_api_key_is_set() -> None:
     js = client.get("/web/app.js")
     assert "headers: authHeaders({ \"Content-Type\": \"application/json\" })," in js.text
     assert "headers.Authorization = `Bearer ${localApiKey}`;" in js.text
+
+
+def test_web_memory_panel_is_secondary_and_closed_by_default() -> None:
+    client = TestClient(create_app(Settings()))
+    response = client.get("/")
+    html = response.text
+
+    assert '<details class="panel memory-panel" aria-labelledby="memory-title">' in html
+    assert '<details class="panel memory-panel" open' not in html
+    assert html.index('class="panel conversation-panel"') < html.index('class="panel memory-panel"')
+
+
+def test_web_js_opens_memory_and_improvement_forms() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+
+    assert "function openInboxCapture(type)" in js.text
+    assert 'openInboxCapture("info")' in js.text
+    assert 'openInboxCapture("improvement")' in js.text
+    assert 'memoryFields.classList.toggle("hidden", type !== "info");' in js.text
+    assert 'improvementFields.classList.toggle("hidden", type !== "improvement");' in js.text
+    assert "lastUserMessage || currentDraft" in js.text
+
+
+def test_web_js_builds_memory_payload_for_clarification_note() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+
+    assert "function buildMemoryInfoBody(title, information, context)" in js.text
+    assert 'note_type: "clarification_note"' in js.text
+    assert 'status: "draft"' in js.text
+    assert 'prompt_summary: "action explicite depuis Mémoire VIVI"' in js.text
+    assert "## Information à mémoriser" in js.text
+    assert "## Contexte" in js.text
+    assert "- Indexation : désactivée" in js.text
+
+
+def test_web_js_builds_improvement_payload_for_backlog_proposal() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+
+    assert "function buildImprovementBody(title, problem, proposal, category, priority)" in js.text
+    assert 'note_type: "backlog_proposal"' in js.text
+    assert 'prompt_summary: "proposition d\'amélioration depuis Mémoire VIVI"' in js.text
+    assert "## Problème observé" in js.text
+    assert "## Amélioration proposée" in js.text
+    assert "## Catégorie" in js.text
+    assert "## Priorité proposée" in js.text
+
+
+def test_web_js_inbox_capture_uses_existing_api_key_and_endpoint() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+
+    assert 'fetch("/obsidian/inbox", {' in js.text
+    assert 'headers: authHeaders({ "Content-Type": "application/json" }),' in js.text
+    assert "body: JSON.stringify(built.payload)," in js.text
+    assert "LMStudioClient" not in js.text
+
+
+def test_web_js_inbox_capture_shows_success_and_copy_path() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+
+    assert "function showInboxCaptureSuccess(relativePath)" in js.text
+    assert "Note créée dans ${lastInboxPath}" in js.text
+    assert "function copyInboxPath()" in js.text
+    assert "navigator.clipboard.writeText(lastInboxPath)" in js.text
+
+
+def test_web_js_inbox_capture_errors_are_safe_and_keep_form() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    body = js.text.split("async function submitInboxCapture(event)", 1)[1].split("async function copyInboxPath()", 1)[0]
+
+    assert "showInboxCaptureError" in body
+    assert "normalizeUiError" in body
+    assert "form.classList.add(\"hidden\")" not in body
+    assert "Le titre est obligatoire." in js.text
+    assert "L'information à mémoriser est obligatoire." in js.text
+    assert "Le problème observé et l'amélioration proposée sont obligatoires." in js.text

@@ -38,6 +38,65 @@
       <div id="error-box" class="error hidden" role="alert" aria-live="assertive"></div>
     </section>
 
+    <details class="panel memory-panel" aria-labelledby="memory-title">
+      <summary id="memory-title">Mémoire VIVI</summary>
+      <p class="help-text">Créer une note candidate dans Obsidian Inbox, à relire avant validation.</p>
+      <div class="memory-actions" aria-label="Actions de capture mémoire">
+        <button id="memory-info-btn" type="button" class="secondary-btn">Mémoriser une information</button>
+        <button id="memory-improvement-btn" type="button" class="secondary-btn">Proposer une amélioration</button>
+      </div>
+
+      <form id="inbox-capture-form" class="inbox-capture-form hidden" aria-describedby="inbox-capture-help">
+        <p id="inbox-capture-help" class="help-text">La note restera en brouillon, non indexée, avec relecture humaine requise.</p>
+
+        <label for="inbox-title">Titre</label>
+        <input id="inbox-title" name="inbox-title" type="text" autocomplete="off" />
+
+        <div id="memory-info-fields" class="capture-fields hidden">
+          <label for="memory-info-content">Information à mémoriser</label>
+          <textarea id="memory-info-content" name="memory-info-content" rows="4"></textarea>
+
+          <label for="memory-info-context">Contexte optionnel</label>
+          <textarea id="memory-info-context" name="memory-info-context" rows="3"></textarea>
+        </div>
+
+        <div id="memory-improvement-fields" class="capture-fields hidden">
+          <label for="improvement-problem">Problème observé</label>
+          <textarea id="improvement-problem" name="improvement-problem" rows="3"></textarea>
+
+          <label for="improvement-proposal">Amélioration proposée</label>
+          <textarea id="improvement-proposal" name="improvement-proposal" rows="3"></textarea>
+
+          <label for="improvement-category">Catégorie</label>
+          <select id="improvement-category" name="improvement-category">
+            <option value="RAG">RAG</option>
+            <option value="Obsidian">Obsidian</option>
+            <option value="UX">UX</option>
+            <option value="Backend">Backend</option>
+            <option value="Documentation">Documentation</option>
+            <option value="LAN">LAN</option>
+            <option value="Autre">Autre</option>
+          </select>
+
+          <label for="improvement-priority">Priorité</label>
+          <select id="improvement-priority" name="improvement-priority">
+            <option value="basse">basse</option>
+            <option value="moyenne" selected>moyenne</option>
+            <option value="haute">haute</option>
+          </select>
+        </div>
+
+        <div class="actions-row">
+          <button id="submit-inbox-capture-btn" type="submit">Créer la note candidate</button>
+          <button id="cancel-inbox-capture-btn" type="button" class="secondary-btn">Annuler</button>
+        </div>
+      </form>
+
+      <div id="inbox-capture-status" class="status hidden" role="status" aria-live="polite"></div>
+      <div id="inbox-capture-error" class="error hidden" role="alert" aria-live="assertive"></div>
+      <button id="copy-inbox-path-btn" type="button" class="secondary-btn hidden">Copier le chemin</button>
+    </details>
+
     <details class="panel help-panel" aria-labelledby="help-title">
       <summary id="help-title">Utiliser VIVI</summary>
       <ul id="help-list" class="help-list">

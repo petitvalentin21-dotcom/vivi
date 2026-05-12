@@ -146,6 +146,19 @@ L'endpoint respecte l'auth locale existante :
 
 Ne pas écrire de clé réelle dans la documentation, les tests ou les notes.
 
+## Mémoire VIVI
+
+L'interface expose un panneau secondaire repliable `Mémoire VIVI`.
+
+Actions V1 :
+
+- `Mémoriser une information` : crée une note `clarification_note` en brouillon.
+- `Proposer une amélioration` : crée une note `backlog_proposal` en brouillon.
+
+Les boutons ouvrent un formulaire de confirmation. Aucune note n'est créée au simple clic sur une action.
+
+La capture utilise `POST /obsidian/inbox`, réutilise la clé API locale déjà renseignée dans l'IHM, et conserve le contenu du formulaire si l'appel échoue.
+
 ## Usages
 
 Usages prévus :

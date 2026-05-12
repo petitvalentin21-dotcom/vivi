@@ -1,6 +1,9 @@
 let currentSessionId = sessionStorage.getItem("vivi_session_id") || "";
 let localApiKey = "";
 let authEnabled = false;
+let lastUserMessage = "";
+let activeInboxCaptureType = "";
+let lastInboxPath = "";
 
 function setText(id, value) {
   const el = document.getElementById(id);
@@ -311,6 +314,237 @@ function clearError() {
   box.classList.add("hidden");
 }
 
+function clearInboxCaptureMessages() {
+  const status = document.getElementById("inbox-capture-status");
+  const error = document.getElementById("inbox-capture-error");
+  const copyBtn = document.getElementById("copy-inbox-path-btn");
+  if (status) {
+    status.textContent = "";
+    status.classList.add("hidden");
+  }
+  if (error) {
+    error.textContent = "";
+    error.classList.add("hidden");
+  }
+  if (copyBtn) {
+    copyBtn.classList.add("hidden");
+  }
+  lastInboxPath = "";
+}
+
+function showInboxCaptureError(text) {
+  const error = document.getElementById("inbox-capture-error");
+  error.textContent = text;
+  error.classList.remove("hidden");
+}
+
+function showInboxCaptureSuccess(relativePath) {
+  const status = document.getElementById("inbox-capture-status");
+  const copyBtn = document.getElementById("copy-inbox-path-btn");
+  lastInboxPath = relativePath || "";
+  status.textContent = `Note créée dans ${lastInboxPath}`;
+  status.classList.remove("hidden");
+  if (copyBtn && lastInboxPath && navigator.clipboard) {
+    copyBtn.classList.remove("hidden");
+  }
+}
+
+function defaultInboxTitle(prefix) {
+  const source = lastUserMessage || String(document.getElementById("message")?.value || "").trim();
+  if (!source) {
+    return prefix;
+  }
+  const compact = source.replace(/\s+/g, " ").slice(0, 56).trim();
+  return compact ? `${prefix} - ${compact}` : prefix;
+}
+
+function openInboxCapture(type) {
+  activeInboxCaptureType = type;
+  clearInboxCaptureMessages();
+
+  const form = document.getElementById("inbox-capture-form");
+  const title = document.getElementById("inbox-title");
+  const memoryFields = document.getElementById("memory-info-fields");
+  const improvementFields = document.getElementById("memory-improvement-fields");
+  const currentDraft = String(document.getElementById("message")?.value || "").trim();
+  const seed = lastUserMessage || currentDraft;
+
+  form.classList.remove("hidden");
+  memoryFields.classList.toggle("hidden", type !== "info");
+  improvementFields.classList.toggle("hidden", type !== "improvement");
+
+  if (type === "info") {
+    title.value = defaultInboxTitle("Information à mémoriser");
+    document.getElementById("memory-info-content").value = seed;
+    document.getElementById("memory-info-context").value = seed
+      ? "Information issue d'un échange utilisateur dans VIVI."
+      : "";
+  } else {
+    title.value = defaultInboxTitle("Amélioration proposée");
+    document.getElementById("improvement-problem").value = "";
+    document.getElementById("improvement-proposal").value = "";
+    document.getElementById("improvement-category").value = "UX";
+    document.getElementById("improvement-priority").value = "moyenne";
+  }
+
+  title.focus();
+}
+
+function cancelInboxCapture() {
+  activeInboxCaptureType = "";
+  clearInboxCaptureMessages();
+  document.getElementById("inbox-capture-form").classList.add("hidden");
+  document.getElementById("memory-info-fields").classList.add("hidden");
+  document.getElementById("memory-improvement-fields").classList.add("hidden");
+}
+
+function buildMemoryInfoBody(title, information, context) {
+  const resolvedContext = context || "Information issue d'un échange utilisateur dans VIVI.";
+  return [
+    `# ${title}`,
+    "",
+    "> Proposition générée par VIVI. À relire avant toute intégration dans les notes sources.",
+    "",
+    "## Information à mémoriser",
+    "",
+    information,
+    "",
+    "## Contexte",
+    "",
+    resolvedContext,
+    "",
+    "## Validation",
+    "",
+    "- Statut : brouillon",
+    "- Indexation : désactivée",
+    "- Relecture humaine requise",
+  ].join("\n");
+}
+
+function buildImprovementBody(title, problem, proposal, category, priority) {
+  return [
+    `# ${title}`,
+    "",
+    "> Proposition générée par VIVI. À relire avant toute intégration au backlog.",
+    "",
+    "## Problème observé",
+    "",
+    problem,
+    "",
+    "## Amélioration proposée",
+    "",
+    proposal,
+    "",
+    "## Catégorie",
+    "",
+    category,
+    "",
+    "## Priorité proposée",
+    "",
+    priority,
+    "",
+    "## Validation",
+    "",
+    "- Statut : brouillon",
+    "- Indexation : désactivée",
+    "- Relecture humaine requise",
+  ].join("\n");
+}
+
+function buildInboxCapturePayload() {
+  const title = String(document.getElementById("inbox-title")?.value || "").trim();
+  if (!title) {
+    return { error: "Le titre est obligatoire." };
+  }
+
+  if (activeInboxCaptureType === "info") {
+    const information = String(document.getElementById("memory-info-content")?.value || "").trim();
+    const context = String(document.getElementById("memory-info-context")?.value || "").trim();
+    if (!information) {
+      return { error: "L'information à mémoriser est obligatoire." };
+    }
+    return {
+      payload: {
+        title,
+        body: buildMemoryInfoBody(title, information, context),
+        note_type: "clarification_note",
+        status: "draft",
+        prompt_summary: "action explicite depuis Mémoire VIVI",
+      },
+    };
+  }
+
+  if (activeInboxCaptureType === "improvement") {
+    const problem = String(document.getElementById("improvement-problem")?.value || "").trim();
+    const proposal = String(document.getElementById("improvement-proposal")?.value || "").trim();
+    const category = String(document.getElementById("improvement-category")?.value || "Autre").trim();
+    const priority = String(document.getElementById("improvement-priority")?.value || "moyenne").trim();
+    if (!problem || !proposal) {
+      return { error: "Le problème observé et l'amélioration proposée sont obligatoires." };
+    }
+    return {
+      payload: {
+        title,
+        body: buildImprovementBody(title, problem, proposal, category, priority),
+        note_type: "backlog_proposal",
+        status: "draft",
+        prompt_summary: "proposition d'amélioration depuis Mémoire VIVI",
+      },
+    };
+  }
+
+  return { error: "Choisis une action Mémoire VIVI." };
+}
+
+async function submitInboxCapture(event) {
+  event.preventDefault();
+  clearInboxCaptureMessages();
+
+  const built = buildInboxCapturePayload();
+  if (built.error) {
+    showInboxCaptureError(built.error);
+    return;
+  }
+
+  const submitBtn = document.getElementById("submit-inbox-capture-btn");
+  const form = document.getElementById("inbox-capture-form");
+  submitBtn.disabled = true;
+  form.setAttribute("aria-busy", "true");
+
+  try {
+    const res = await fetch("/obsidian/inbox", {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(built.payload),
+    });
+    const payload = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      const normalized = normalizeUiError({ status: res.status, payload });
+      showInboxCaptureError(normalized.detail ? `${normalized.primary} ${normalized.detail}` : normalized.primary);
+      return;
+    }
+
+    showInboxCaptureSuccess(payload.relative_path || `92_inbox/${payload.filename || ""}`);
+  } catch (err) {
+    const normalized = normalizeUiError({ networkError: err });
+    showInboxCaptureError(`${normalized.primary} ${normalized.detail}`);
+  } finally {
+    submitBtn.disabled = false;
+    form.setAttribute("aria-busy", "false");
+  }
+}
+
+async function copyInboxPath() {
+  if (!lastInboxPath || !navigator.clipboard) {
+    return;
+  }
+  await navigator.clipboard.writeText(lastInboxPath);
+  const status = document.getElementById("inbox-capture-status");
+  status.textContent = `Chemin copié : ${lastInboxPath}`;
+  status.classList.remove("hidden");
+}
+
 function renderSources(sources) {
   const panel = document.getElementById("sources-panel");
   const list = document.getElementById("sources-list");
@@ -435,6 +669,7 @@ async function sendChat(event) {
   loading.classList.remove("hidden");
 
   appendMessage("Utilisateur", message);
+  lastUserMessage = message;
 
   try {
     const res = await fetch("/chat", {
@@ -483,4 +718,9 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("reset-conversation-btn").addEventListener("click", resetConversation);
   document.getElementById("apply-api-key-btn").addEventListener("click", applyApiKey);
   document.getElementById("clear-api-key-btn").addEventListener("click", clearApiKey);
+  document.getElementById("memory-info-btn").addEventListener("click", () => openInboxCapture("info"));
+  document.getElementById("memory-improvement-btn").addEventListener("click", () => openInboxCapture("improvement"));
+  document.getElementById("inbox-capture-form").addEventListener("submit", submitInboxCapture);
+  document.getElementById("cancel-inbox-capture-btn").addEventListener("click", cancelInboxCapture);
+  document.getElementById("copy-inbox-path-btn").addEventListener("click", copyInboxPath);
 });
