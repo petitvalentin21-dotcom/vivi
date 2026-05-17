@@ -1,16 +1,21 @@
 from __future__ import annotations
 
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Request
 
 from app.config import Settings
 
 
 def require_api_key(settings: Settings):
     def _dependency(
+        request: Request,
         authorization: str | None = Header(default=None, alias="Authorization"),
         x_vivi_api_key: str | None = Header(default=None, alias="X-VIVI-API-Key"),
     ) -> None:
         if not settings.auth_enabled:
+            return
+
+        client_host = request.client.host if request.client else ""
+        if client_host in ("127.0.0.1", "::1"):
             return
 
         expected = settings.api_key.strip()
