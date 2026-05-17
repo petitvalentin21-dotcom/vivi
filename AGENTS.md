@@ -243,66 +243,19 @@ Only update Obsidian project memory when explicitly requested or when the task i
 
 ---
 
-## 10. tmp report policy
+## 10. Run history policy
 
-Codex must maintain temporary reports in tmp/.
+The canonical run history lives in `knowledge_vault/05_runs/`.
 
-Expected files:
+After each significant FEAT or improvement, create a note:
 
-- tmp/codex_last_report.md
-- tmp/codex_report_YYYY-MM-DD_HH-mm-ss.md when possible
+- filename: `YYYY-MM-DD_FEAT-short-name.md`
+- frontmatter: `doc_type: run`, `llm_index: false`, `llm_priority: low`
+- content: résumé, fichiers modifiés, validation (tests), résultat, note méthode si pertinent
 
-Rules:
+`llm_index: false` is the default for run logs — execution detail must not pollute RAG responses. Set `llm_index: true` only if the run contains a decision worth surfacing in retrieval.
 
-- codex_last_report.md is overwritten at each task;
-- timestamped reports are local history;
-- their content may be identical;
-- tmp/ must not be committed unless explicitly requested;
-- reports must be concise and useful for handoff.
-
-Expected report format:
-
-# Rapport Codex — FEAT-XX
-
-## Résumé
-
-Short task summary.
-
-## Fichiers créés
-
-List.
-
-## Fichiers modifiés
-
-List.
-
-## Comportement ajouté
-
-List.
-
-## Comportement explicitement non ajouté
-
-List of exclusions respected.
-
-## Tests lancés
-
-Commands and result.
-
-## Résultat
-
-Success, partial, or failure.
-
-## Risques
-
-Residual risks.
-
-## Conformité MVP
-
-Confirm relevant constraints.
-
-## Prochaine étape recommandée
-
-One next step only.
+`tmp/` is scratch space only — transient, never committed, overwritten freely. It is not the historical record.
 
 ---
 

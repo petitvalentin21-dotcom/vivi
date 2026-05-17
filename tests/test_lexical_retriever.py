@@ -166,6 +166,91 @@ def test_retriever_marks_strong_and_weak_confidence_sources() -> None:
     assert by_path["04_backlog/weak.md"].is_low_confidence is True
 
 
+def test_retriever_priority_high_before_low_at_equal_score() -> None:
+    notes = [
+        MarkdownNote(
+            path="03_decisions/low_prio.md",
+            title="low priority source",
+            content="# Section\nkeyword present here",
+            headings=["Section"],
+            tags=[],
+            metadata={"llm_priority": "low"},
+        ),
+        MarkdownNote(
+            path="03_decisions/high_prio.md",
+            title="high priority source",
+            content="# Section\nkeyword present here",
+            headings=["Section"],
+            tags=[],
+            metadata={"llm_priority": "high"},
+        ),
+    ]
+    chunks = split_into_chunks(notes)
+    results = retrieve_lexical("keyword", chunks, 5)
+    paths = [r.path for r in results]
+    assert paths.index("03_decisions/high_prio.md") < paths.index("03_decisions/low_prio.md")
+
+
+def test_retriever_priority_absent_treated_as_medium() -> None:
+    notes = [
+        MarkdownNote(
+            path="03_decisions/low_prio.md",
+            title="low priority source",
+            content="# Section\nkeyword present here",
+            headings=["Section"],
+            tags=[],
+            metadata={"llm_priority": "low"},
+        ),
+        MarkdownNote(
+            path="03_decisions/no_prio.md",
+            title="no priority source",
+            content="# Section\nkeyword present here",
+            headings=["Section"],
+            tags=[],
+            metadata={},
+        ),
+        MarkdownNote(
+            path="03_decisions/high_prio.md",
+            title="high priority source",
+            content="# Section\nkeyword present here",
+            headings=["Section"],
+            tags=[],
+            metadata={"llm_priority": "high"},
+        ),
+    ]
+    chunks = split_into_chunks(notes)
+    results = retrieve_lexical("keyword", chunks, 5)
+    paths = [r.path for r in results]
+    high_idx = paths.index("03_decisions/high_prio.md")
+    no_idx = paths.index("03_decisions/no_prio.md")
+    low_idx = paths.index("03_decisions/low_prio.md")
+    assert high_idx < no_idx < low_idx
+
+
+def test_retriever_score_dominates_priority() -> None:
+    notes = [
+        MarkdownNote(
+            path="03_decisions/low_prio_strong.md",
+            title="low priority strong match",
+            content="# Section\nkeyword keyword keyword keyword keyword",
+            headings=["Section"],
+            tags=[],
+            metadata={"llm_priority": "low"},
+        ),
+        MarkdownNote(
+            path="03_decisions/high_prio_weak.md",
+            title="high priority weak match",
+            content="# Section\nunrelated content with keyword once",
+            headings=["Section"],
+            tags=[],
+            metadata={"llm_priority": "high"},
+        ),
+    ]
+    chunks = split_into_chunks(notes)
+    results = retrieve_lexical("keyword", chunks, 5)
+    assert results[0].path == "03_decisions/low_prio_strong.md"
+
+
 def test_retriever_confidence_marking_is_deterministic() -> None:
     chunks = split_into_chunks(_notes())
 

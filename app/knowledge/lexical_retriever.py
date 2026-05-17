@@ -9,6 +9,11 @@ _WORD_RE = re.compile(r"[a-z0-9_]+")
 DEFAULT_MAX_CHUNKS_PER_PATH = 2
 LOW_CONFIDENCE_MIN_SCORE = 3.0
 LOW_CONFIDENCE_RATIO = 0.35
+_PRIORITY_RANK: dict[str, int] = {"high": 0, "medium": 1, "low": 2}
+
+
+def _priority_rank(metadata: dict) -> int:
+    return _PRIORITY_RANK.get(str(metadata.get("llm_priority", "")).lower(), 1)
 
 
 def retrieve_lexical(
@@ -25,7 +30,7 @@ def retrieve_lexical(
     if not tokens:
         return []
 
-    scored: list[tuple[float, Source]] = []
+    scored: list[tuple[float, int, Source]] = []
     for chunk in chunks:
         score = _score_chunk(q, tokens, chunk)
         if score <= 0:
@@ -40,9 +45,9 @@ def retrieve_lexical(
             excerpt=excerpt,
             chunk_text=chunk.content,
         )
-        scored.append((score, source))
+        scored.append((score, _priority_rank(chunk.metadata), source))
 
-    scored.sort(key=lambda item: (-item[0], item[1].path, item[1].section, item[1].source_id))
+    scored.sort(key=lambda item: (-item[0], item[1], item[2].path, item[2].section, item[2].source_id))
     limit = max(1, int(top_k))
     selected = _select_diverse_sources(scored, limit, max_chunks_per_path)
     max_score = scored[0][0] if scored else 0.0
@@ -50,7 +55,7 @@ def retrieve_lexical(
 
 
 def _select_diverse_sources(
-    scored: list[tuple[float, Source]],
+    scored: list[tuple[float, int, Source]],
     limit: int,
     max_chunks_per_path: int,
 ) -> list[Source]:
@@ -63,7 +68,7 @@ def _select_diverse_sources(
     selected_ids: set[str] = set()
     counts_by_path: dict[str, int] = {}
 
-    for _, source in scored:
+    for _, __, source in scored:
         if len(selected) >= normalized_limit:
             return selected
         if counts_by_path.get(source.path, 0) >= per_path_limit:
@@ -72,7 +77,7 @@ def _select_diverse_sources(
         selected_ids.add(source.source_id)
         counts_by_path[source.path] = counts_by_path.get(source.path, 0) + 1
 
-    for _, source in scored:
+    for _, __, source in scored:
         if len(selected) >= normalized_limit:
             return selected
         if source.source_id in selected_ids:

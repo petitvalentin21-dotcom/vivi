@@ -62,6 +62,8 @@ Il centralise la documentation exploitable pour :
 ## Runs importants
 
 - [[05_runs/2026-05-06_FEAT-03_run_log]] — trace FEAT-03 chat LM Studio et sessions.
+- [[05_runs/2026-05-12_FEAT-alignement-loader]] — alignement loader RAG sur standard frontmatter.
+- [[05_runs/2026-05-17_FEAT-ranking-llm-priority]] — ranking lexical pondéré par llm_priority.
 
 ## Archives et générés
 
