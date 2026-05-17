@@ -48,8 +48,12 @@ Il centralise la documentation exploitable pour :
 
 ## Décisions importantes
 
-- `03_decisions/` ne contient pas encore de décision structurante dédiée.
-- Les décisions MVP actuellement actives sont décrites dans le cadrage produit, la spec backend et la carte d'architecture réelle.
+- [[03_decisions/DECISION-01_provider-lm-studio-unique]] — LM Studio unique, pas de fallback cloud.
+- [[03_decisions/DECISION-02_rag-lexical-sans-vector-db]] — RAG lexical uniquement, sans vector DB ni embeddings.
+- [[03_decisions/DECISION-03_vault-indexation-perimetre]] — Périmètre d'indexation du vault, `00_navigation/` hors index, `llm_index: false`.
+- [[03_decisions/DECISION-04_perimetre-mvp-local-first]] — Périmètre MVP et non-objectifs (multi-agent, Docker, SSE, etc.).
+- [[03_decisions/DECISION-05_ecriture-obsidian-inbox-validation-humaine]] — Écriture Obsidian limitée à `92_inbox/`, validation humaine obligatoire.
+- [[03_decisions/DECISION-06_auth-api-key-locale]] — Auth par clé API locale simple, pas de multi-utilisateur.
 
 ## Backlog MVP
 
