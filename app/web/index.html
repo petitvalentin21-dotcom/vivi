@@ -14,29 +14,28 @@
     </header>
 
     <section class="panel conversation-panel">
-      <h2>Conversation</h2>
-      <div id="session-status" class="status" role="status" aria-live="polite">Session locale : nouvelle</div>
       <div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-relevant="additions text"></div>
 
       <form id="chat-form" class="chat-form" aria-describedby="loading">
-        <label for="mode">Mode</label>
-        <select id="mode" name="mode" aria-label="Choisir le mode de conversation">
-          <option value="chat">chat</option>
-          <option value="document">document</option>
-        </select>
-
         <label for="message">Message</label>
-        <textarea id="message" name="message" rows="4" placeholder="Écris ton message..." aria-label="Message à envoyer"></textarea>
+        <textarea id="message" name="message" rows="3" placeholder="Écris ton message..." aria-label="Message à envoyer"></textarea>
 
         <div class="actions-row">
           <button id="send-btn" type="submit" aria-label="Envoyer le message">Envoyer</button>
-          <button id="reset-conversation-btn" type="button" class="secondary-btn" aria-label="Réinitialiser la conversation locale">Réinitialiser la conversation</button>
+          <button id="reset-conversation-btn" type="button" class="secondary-btn" aria-label="Réinitialiser la conversation locale">Réinitialiser</button>
+          <span id="session-status" class="session-inline" role="status" aria-live="polite">Session : nouvelle</span>
         </div>
         <span id="loading" class="loading hidden" role="status" aria-live="polite">Envoi en cours...</span>
       </form>
 
       <div id="error-box" class="error hidden" role="alert" aria-live="assertive"></div>
     </section>
+
+    <details class="panel sources-panel hidden" id="sources-panel" aria-labelledby="sources-title">
+      <summary id="sources-title">Sources</summary>
+      <div id="sources-empty" class="sources-empty hidden">Aucune source trouvée pour cette question.</div>
+      <div id="sources-list" class="sources-list"></div>
+    </details>
 
     <details class="panel memory-panel" aria-labelledby="memory-title">
       <summary id="memory-title">Mémoire VIVI</summary>
@@ -87,7 +86,7 @@
         </div>
 
         <div class="actions-row">
-          <button id="submit-inbox-capture-btn" type="submit">Créer la note candidate</button>
+          <button id="submit-inbox-capture-btn" type="submit">Créer la note candidate dans Obsidian Inbox</button>
           <button id="cancel-inbox-capture-btn" type="button" class="secondary-btn">Annuler</button>
         </div>
       </form>
@@ -100,9 +99,8 @@
     <details class="panel help-panel" aria-labelledby="help-title">
       <summary id="help-title">Utiliser VIVI</summary>
       <ul id="help-list" class="help-list">
-        <li><strong>Mode chat :</strong> pour discuter directement avec VIVI.</li>
-        <li><strong>Mode document :</strong> pour répondre avec le contexte du vault Obsidian.</li>
-        <li><strong>Sources :</strong> en mode document, VIVI affiche les notes utilisées quand elle en trouve.</li>
+        <li><strong>Envoyer un message :</strong> VIVI utilise automatiquement le vault Obsidian pour enrichir sa réponse.</li>
+        <li><strong>Sources :</strong> quand VIVI trouve des notes pertinentes, un encart Sources apparaît. Clique pour les voir.</li>
         <li><strong>LM Studio :</strong> doit être lancé avec un modèle chargé.</li>
         <li><strong>Si le modèle est indisponible :</strong> vérifier LM Studio, le modèle chargé et la configuration <code>.env</code>.</li>
       </ul>
@@ -114,14 +112,10 @@
         <div id="runtime-status" class="status" role="status" aria-live="polite">Chargement runtime...</div>
         <button id="refresh-runtime-btn" type="button" class="secondary-btn" aria-label="Rafraîchir le statut runtime">Rafraîchir runtime</button>
       </div>
-      <div class="meta-grid">
-        <div><strong>Backend:</strong> <span id="backend-state">-</span></div>
-        <div><strong>Sécurité:</strong> <span id="security-state">-</span></div>
-        <div><strong>Provider:</strong> <span id="provider-name">-</span></div>
-        <div><strong>Modèle:</strong> <span id="provider-model">-</span></div>
-        <div><strong>Disponible:</strong> <span id="provider-available">-</span></div>
-        <div><strong>Vault:</strong> <span id="vault-state">-</span></div>
-        <div><strong>Notes:</strong> <span id="vault-notes">-</span></div>
+      <div class="runtime-meta">
+        <span id="security-state">-</span>
+        · <span id="provider-name">-</span> / <span id="provider-model">-</span>
+        · vault : <span id="vault-notes">-</span> notes
       </div>
       <div id="auth-panel" class="auth-panel hidden">
         <label for="api-key-input">Clé API locale</label>
@@ -140,12 +134,6 @@
         <p id="api-key-help" class="help-text">Utilisée uniquement pour les appels locaux au backend.</p>
       </div>
     </details>
-
-    <section id="sources-panel" class="panel hidden">
-      <h2>Sources</h2>
-      <div id="sources-empty" class="sources-empty hidden">Aucune source trouvée pour cette question.</div>
-      <div id="sources-list" class="sources-list"></div>
-    </section>
   </main>
 
   <script src="/web/app.js"></script>

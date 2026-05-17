@@ -11,13 +11,11 @@ def test_root_serves_web_interface() -> None:
     assert "text/html" in response.headers.get("content-type", "")
     assert "VIVI" in response.text
     assert 'id="message"' in response.text
-    assert 'id="mode"' in response.text
-    assert 'value="chat"' in response.text
-    assert 'value="document"' in response.text
     assert 'id="send-btn"' in response.text
     assert 'id="chat-log"' in response.text
     assert 'id="sources-panel"' in response.text
     assert 'id="sources-list"' in response.text
+    assert 'id="sources-title"' in response.text
     assert 'id="runtime-status"' in response.text
     assert 'id="refresh-runtime-btn"' in response.text
     assert 'class="panel conversation-panel"' in response.text
@@ -27,11 +25,10 @@ def test_root_serves_web_interface() -> None:
     assert '<summary id="memory-title">Mémoire VIVI</summary>' in response.text
     assert '<summary id="help-title">Utiliser VIVI</summary>' in response.text
     assert '<summary id="runtime-title">État local</summary>' in response.text
+    assert '<summary id="sources-title">Sources</summary>' in response.text
     assert "<details" in response.text
     assert "<details open" not in response.text
     assert "Utiliser VIVI" in response.text
-    assert "Mode chat" in response.text
-    assert "Mode document" in response.text
     assert "LM Studio" in response.text
     assert "Sources" in response.text
     assert 'id="help-list"' in response.text
@@ -84,6 +81,7 @@ def test_web_css_gives_conversation_more_room() -> None:
     assert ".help-panel summary" in css.text
     assert ".runtime-panel summary" in css.text
     assert ".memory-panel summary" in css.text
+    assert ".sources-panel summary" in css.text
     assert ".inbox-capture-form" in css.text
 
 
@@ -109,7 +107,7 @@ def test_web_js_renders_readable_source_cards() -> None:
     assert 'document.createElement("article")' in js.text
     assert '"source-item"' in js.text
     assert 'item.setAttribute("aria-label"' in js.text
-    assert 'title.className = "source-title"' in js.text
+    assert 'titleEl.className = "source-title"' in js.text
     assert 'pathEl.className = "source-path"' in js.text
     assert 'scoreLabel.className = "source-score"' in js.text
     assert 'excerptEl.className = "source-excerpt"' in js.text
@@ -157,6 +155,33 @@ def test_web_js_supports_bold_markdown_with_text_nodes() -> None:
     assert "document.createTextNode(part)" in js.text
 
 
+def test_web_js_supports_inline_code_markdown() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert 'document.createElement("code")' in js.text
+    assert "code.textContent = part.slice(1, -1);" in js.text
+
+
+def test_web_js_supports_markdown_tables() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "function flushMarkdownTable(container, tableState)" in js.text
+    assert 'document.createElement("table")' in js.text
+    assert 'document.createElement("thead")' in js.text
+    assert 'document.createElement("tbody")' in js.text
+    assert 'document.createElement("th")' in js.text
+    assert 'document.createElement("td")' in js.text
+    assert "tableState.rows" in js.text
+
+
+def test_web_js_supports_fenced_code_blocks() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert 'document.createElement("pre")' in js.text
+    assert "inCodeBlock" in js.text
+    assert "codeLines" in js.text
+
+
 def test_web_js_falls_back_to_plain_text_if_markdown_rendering_fails() -> None:
     client = TestClient(create_app(Settings()))
     js = client.get("/web/app.js")
@@ -198,7 +223,7 @@ def test_web_js_reset_conversation_function_does_not_call_clear_api_key() -> Non
     js = client.get("/web/app.js")
     body = js.text.split("function resetConversation()", 1)[1].split("window.addEventListener", 1)[0]
     assert "clearApiKey(" not in body
-    assert "localApiKey = """ not in body
+    assert "localApiKey = \"\"" not in body
 
 
 def test_web_js_clear_api_key_is_explicit_action() -> None:
@@ -253,6 +278,23 @@ def test_web_js_chat_uses_authorization_header_when_api_key_is_set() -> None:
     js = client.get("/web/app.js")
     assert "headers: authHeaders({ \"Content-Type\": \"application/json\" })," in js.text
     assert "headers.Authorization = `Bearer ${localApiKey}`;" in js.text
+
+
+def test_web_js_chat_always_sends_rag() -> None:
+    client = TestClient(create_app(Settings()))
+    js = client.get("/web/app.js")
+    assert "use_rag: true" in js.text
+    assert 'mode: "chat"' in js.text
+
+
+def test_web_sources_panel_is_details_element_closed_by_default() -> None:
+    client = TestClient(create_app(Settings()))
+    response = client.get("/")
+    html = response.text
+
+    assert '<details class="panel sources-panel hidden" id="sources-panel"' in html
+    assert '<details class="panel sources-panel hidden" id="sources-panel"' in html
+    assert "sources-panel" in html
 
 
 def test_web_memory_panel_is_secondary_and_closed_by_default() -> None:

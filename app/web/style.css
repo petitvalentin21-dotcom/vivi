@@ -108,7 +108,8 @@ h1, h2 { margin: 0 0 0.75rem 0; }
 
 .help-panel summary,
 .runtime-panel summary,
-.memory-panel summary {
+.memory-panel summary,
+.sources-panel summary {
   cursor: pointer;
   font-weight: 700;
   color: #24423f;
@@ -116,7 +117,8 @@ h1, h2 { margin: 0 0 0.75rem 0; }
 
 .help-panel summary:focus-visible,
 .runtime-panel summary:focus-visible,
-.memory-panel summary:focus-visible {
+.memory-panel summary:focus-visible,
+.sources-panel summary:focus-visible {
   outline: 3px solid #0a7d74;
   outline-offset: 2px;
   border-radius: 4px;
@@ -124,7 +126,8 @@ h1, h2 { margin: 0 0 0.75rem 0; }
 
 .help-panel[open] summary,
 .runtime-panel[open] summary,
-.memory-panel[open] summary {
+.memory-panel[open] summary,
+.sources-panel[open] summary {
   margin-bottom: 0.65rem;
 }
 
@@ -144,10 +147,16 @@ h1, h2 { margin: 0 0 0.75rem 0; }
   color: #1f2933;
 }
 
-.meta-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.5rem;
+.runtime-meta {
+  font-size: 0.92rem;
+  color: var(--muted);
+  margin-top: 0.4rem;
+}
+
+.session-inline {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin-left: 0.25rem;
 }
 
 .chat-log {
@@ -163,7 +172,7 @@ h1, h2 { margin: 0 0 0.75rem 0; }
 
 .msg {
   margin-bottom: 0.75rem;
-  padding: 0.65rem 0.75rem;
+  padding: 0.75rem 0.9rem;
   border-radius: 8px;
   border: 1px solid var(--border);
 }
@@ -179,7 +188,7 @@ h1, h2 { margin: 0 0 0.75rem 0; }
 }
 
 .msg-content {
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .msg-content p,
@@ -226,6 +235,11 @@ select, textarea, input, button {
   padding: 0.55rem;
   border-radius: 8px;
   border: 1px solid var(--border);
+}
+
+textarea#message {
+  min-height: 3.5rem;
+  resize: vertical;
 }
 
 button {
@@ -392,6 +406,54 @@ textarea:focus-visible {
 .sources-empty {
   color: var(--muted);
   margin-bottom: 0.6rem;
+}
+
+.msg-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5rem 0;
+  font-size: 0.93rem;
+}
+
+.msg-content th,
+.msg-content td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.65rem;
+  text-align: left;
+}
+
+.msg-content th {
+  background: #f0f4f3;
+  font-weight: 600;
+}
+
+.msg-content tr:nth-child(even) td {
+  background: #f8faf9;
+}
+
+.msg-content code {
+  font-family: "Consolas", "Cascadia Code", monospace;
+  background: #f0f4f3;
+  border: 1px solid var(--border);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.msg-content pre {
+  background: #f0f4f3;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.msg-content pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.92em;
 }
 
 @media (max-width: 640px) {

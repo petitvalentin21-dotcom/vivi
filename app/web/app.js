@@ -14,9 +14,9 @@ function setText(id, value) {
 
 function sessionLabel(sessionId) {
   if (!sessionId) {
-    return "Session locale : nouvelle";
+    return "Session : nouvelle";
   }
-  return `Session locale : ${sessionId.slice(0, 8)}...`;
+  return `Session : ${sessionId.slice(0, 8)}...`;
 }
 
 function setCurrentSessionId(sessionId) {
@@ -53,7 +53,7 @@ function appendMessage(role, content) {
 
 function appendInlineMarkdown(parent, text) {
   const value = String(text || "");
-  const parts = value.split(/(\*\*[^*]+\*\*)/g);
+  const parts = value.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
   parts.forEach((part) => {
     if (!part) {
       return;
@@ -62,6 +62,12 @@ function appendInlineMarkdown(parent, text) {
       const strong = document.createElement("strong");
       strong.textContent = part.slice(2, -2);
       parent.appendChild(strong);
+      return;
+    }
+    if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
+      const code = document.createElement("code");
+      code.textContent = part.slice(1, -1);
+      parent.appendChild(code);
       return;
     }
     parent.appendChild(document.createTextNode(part));
@@ -83,33 +89,106 @@ function flushMarkdownList(container, listState) {
   listState.type = "";
 }
 
+function flushMarkdownTable(container, tableState) {
+  if (!tableState.rows.length) {
+    return;
+  }
+  const table = document.createElement("table");
+  const rows = tableState.rows;
+  let bodyStart = 0;
+
+  if (rows.length >= 2 && rows[1].isSep) {
+    const thead = document.createElement("thead");
+    const tr = document.createElement("tr");
+    rows[0].cells.forEach((cell) => {
+      const th = document.createElement("th");
+      appendInlineMarkdown(th, cell);
+      tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+    table.appendChild(thead);
+    bodyStart = 2;
+  }
+
+  const dataRows = rows.slice(bodyStart).filter((r) => !r.isSep);
+  if (dataRows.length) {
+    const tbody = document.createElement("tbody");
+    dataRows.forEach((row) => {
+      const tr = document.createElement("tr");
+      row.cells.forEach((cell) => {
+        const td = document.createElement("td");
+        appendInlineMarkdown(td, cell);
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+  }
+
+  container.appendChild(table);
+  tableState.rows = [];
+}
+
 function renderMarkdownLite(container, content) {
   try {
     const text = String(content || "");
     const lines = text.replace(/\r\n/g, "\n").split("\n");
     const paragraphLines = [];
     const listState = { element: null, type: "" };
+    const tableState = { rows: [] };
+    let inCodeBlock = false;
+    const codeLines = [];
+
+    const TABLE_ROW_RE = /^\|(.+)\|$/;
+    const TABLE_SEP_RE = /^\|[\-:\|\s]+\|$/;
 
     function flushParagraph() {
       if (!paragraphLines.length) {
         return;
       }
       flushMarkdownList(container, listState);
+      flushMarkdownTable(container, tableState);
       appendMarkdownBlock(container, "p", paragraphLines.join(" "));
       paragraphLines.length = 0;
     }
 
     lines.forEach((rawLine) => {
+      if (inCodeBlock) {
+        if (rawLine.trimStart().startsWith("```")) {
+          inCodeBlock = false;
+          const pre = document.createElement("pre");
+          const codeEl = document.createElement("code");
+          codeEl.textContent = codeLines.join("\n");
+          pre.appendChild(codeEl);
+          container.appendChild(pre);
+          codeLines.length = 0;
+        } else {
+          codeLines.push(rawLine);
+        }
+        return;
+      }
+
       const line = rawLine.trim();
+
+      if (line.startsWith("```")) {
+        flushParagraph();
+        flushMarkdownList(container, listState);
+        flushMarkdownTable(container, tableState);
+        inCodeBlock = true;
+        return;
+      }
+
       if (!line) {
         flushParagraph();
         flushMarkdownList(container, listState);
+        flushMarkdownTable(container, tableState);
         return;
       }
 
       if (line === "---" || line === "***") {
         flushParagraph();
         flushMarkdownList(container, listState);
+        flushMarkdownTable(container, tableState);
         container.appendChild(document.createElement("hr"));
         return;
       }
@@ -118,9 +197,24 @@ function renderMarkdownLite(container, content) {
       if (heading) {
         flushParagraph();
         flushMarkdownList(container, listState);
+        flushMarkdownTable(container, tableState);
         appendMarkdownBlock(container, `h${heading[1].length + 2}`, heading[2]);
         return;
       }
+
+      if (TABLE_ROW_RE.test(line)) {
+        flushParagraph();
+        flushMarkdownList(container, listState);
+        if (TABLE_SEP_RE.test(line)) {
+          tableState.rows.push({ isSep: true, cells: [] });
+        } else {
+          const cells = line.slice(1, -1).split("|").map((c) => c.trim());
+          tableState.rows.push({ isSep: false, cells });
+        }
+        return;
+      }
+
+      flushMarkdownTable(container, tableState);
 
       const unordered = /^[-*]\s+(.+)$/.exec(line);
       const ordered = /^\d+\.\s+(.+)$/.exec(line);
@@ -141,8 +235,17 @@ function renderMarkdownLite(container, content) {
       paragraphLines.push(line);
     });
 
+    if (inCodeBlock && codeLines.length) {
+      const pre = document.createElement("pre");
+      const codeEl = document.createElement("code");
+      codeEl.textContent = codeLines.join("\n");
+      pre.appendChild(codeEl);
+      container.appendChild(pre);
+    }
+
     flushParagraph();
     flushMarkdownList(container, listState);
+    flushMarkdownTable(container, tableState);
 
     if (!container.childNodes.length && text) {
       container.textContent = text;
@@ -548,17 +651,10 @@ async function copyInboxPath() {
 function renderSources(sources) {
   const panel = document.getElementById("sources-panel");
   const list = document.getElementById("sources-list");
-  const empty = document.getElementById("sources-empty");
+  const title = document.getElementById("sources-title");
   list.innerHTML = "";
-  empty.classList.add("hidden");
 
-  const mode = document.getElementById("mode").value;
   if (!sources || sources.length === 0) {
-    if (mode === "document") {
-      panel.classList.remove("hidden");
-      empty.classList.remove("hidden");
-      return;
-    }
     panel.classList.add("hidden");
     return;
   }
@@ -582,9 +678,9 @@ function renderSources(sources) {
     indexLabel.className = "source-index";
     indexLabel.textContent = `Source ${sourceNumber}`;
 
-    const title = document.createElement("strong");
-    title.className = "source-title";
-    title.textContent = label;
+    const titleEl = document.createElement("strong");
+    titleEl.className = "source-title";
+    titleEl.textContent = label;
 
     const scoreLabel = document.createElement("span");
     scoreLabel.className = "source-score";
@@ -595,9 +691,9 @@ function renderSources(sources) {
       badge.className = "source-badge-low";
       badge.title = "Cette source a un score de pertinence faible.";
       badge.textContent = "faible";
-      header.append(indexLabel, title, scoreLabel, badge);
+      header.append(indexLabel, titleEl, scoreLabel, badge);
     } else {
-      header.append(indexLabel, title, scoreLabel);
+      header.append(indexLabel, titleEl, scoreLabel);
     }
 
     const pathEl = document.createElement("div");
@@ -619,6 +715,7 @@ function renderSources(sources) {
     list.appendChild(item);
   });
 
+  if (title) title.textContent = `Sources (${sources.length})`;
   panel.classList.remove("hidden");
 }
 
@@ -633,12 +730,9 @@ async function loadRuntime() {
     authEnabled = Boolean(payload.auth_enabled);
     updateAuthPanelVisibility();
     setText("runtime-status", "Runtime OK");
-    setText("backend-state", "ok");
     setText("provider-name", payload.provider?.name || "-");
     setText("provider-model", payload.provider?.model || "(non configuré)");
     const providerAvailable = Boolean(payload.provider?.available);
-    setText("provider-available", String(providerAvailable));
-    setText("vault-state", payload.vault?.exists ? "ok" : "absent");
     setText("vault-notes", String(payload.vault?.notes_count ?? "-"));
     if (!providerAvailable) {
       showNormalizedError({
@@ -650,9 +744,6 @@ async function loadRuntime() {
     authEnabled = false;
     updateAuthPanelVisibility();
     setText("runtime-status", "Runtime indisponible");
-    setText("backend-state", "erreur");
-    setText("vault-state", "-");
-    setText("vault-notes", "-");
     showNormalizedError(normalizeUiError({ networkError: err }));
   }
 }
@@ -661,7 +752,6 @@ async function sendChat(event) {
   event.preventDefault();
   clearError();
 
-  const mode = document.getElementById("mode").value;
   const messageEl = document.getElementById("message");
   const message = messageEl.value.trim();
 
@@ -684,7 +774,7 @@ async function sendChat(event) {
     const res = await fetch("/chat", {
       method: "POST",
       headers: authHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ message, mode, session_id: currentSessionId || null }),
+      body: JSON.stringify({ message, use_rag: true, mode: "chat", session_id: currentSessionId || null }),
     });
 
     const payload = await res.json().catch(() => ({}));
@@ -712,8 +802,11 @@ async function sendChat(event) {
 function resetConversation() {
   document.getElementById("chat-log").innerHTML = "";
   document.getElementById("sources-list").innerHTML = "";
-  document.getElementById("sources-panel").classList.add("hidden");
-  document.getElementById("sources-empty").classList.add("hidden");
+  const sourcesPanel = document.getElementById("sources-panel");
+  sourcesPanel.classList.add("hidden");
+  sourcesPanel.removeAttribute("open");
+  const sourcesTitle = document.getElementById("sources-title");
+  if (sourcesTitle) sourcesTitle.textContent = "Sources";
   setCurrentSessionId("");
   showError("Conversation réinitialisée localement.");
 }
