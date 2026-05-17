@@ -122,3 +122,19 @@ class ObsidianInboxCreateResponse(BaseModel):
     status: str
     index: bool
     review_required: bool
+
+
+class ConversationMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ConversationExportRequest(BaseModel):
+    session_id: str | None = None
+    messages: list[ConversationMessage]
+
+
+class ConversationExportResponse(BaseModel):
+    exported: bool
+    relative_path: str
+    filename: str

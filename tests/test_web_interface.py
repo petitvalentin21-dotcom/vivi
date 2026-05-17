@@ -215,7 +215,7 @@ def test_web_js_reset_conversation_does_not_clear_api_key() -> None:
     js = client.get("/web/app.js")
     assert "function resetConversation()" in js.text
     assert "setCurrentSessionId(\"\");" in js.text
-    assert "Conversation réinitialisée localement." in js.text
+    assert "Conversation réinitialisée" in js.text
 
 
 def test_web_js_reset_conversation_function_does_not_call_clear_api_key() -> None:

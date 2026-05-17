@@ -12,6 +12,8 @@ from app.api.errors import ApiError, api_error_handler, unhandled_error_handler
 from app.api.schemas import (
     ChatRequest,
     ChatResponse,
+    ConversationExportRequest,
+    ConversationExportResponse,
     HealthResponse,
     KnowledgeSearchResponse,
     ObsidianInboxCreateRequest,
@@ -132,6 +134,51 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             review_required=bool(result.frontmatter["review_required"]),
         )
 
+    @app.post(
+        "/conversation/export",
+        response_model=ConversationExportResponse,
+        dependencies=[Depends(require_api_key(cfg))],
+    )
+    def conversation_export(payload: ConversationExportRequest) -> ConversationExportResponse:
+        user_messages = [m for m in payload.messages if m.role == "user"]
+        if not user_messages:
+            raise ApiError(
+                status_code=400,
+                code="invalid_request",
+                message="No user messages to export.",
+                recovery_hint="Send at least one user message before exporting.",
+            )
+
+        session_id = str(payload.session_id or "").strip() or None
+        session_short = session_id[:8] if session_id else "anonyme"
+        from datetime import date
+
+        today = date.today().isoformat()
+        title = f"Conversation VIVI — {today} — {session_short}"
+        body = _format_conversation_body(payload.messages, session_id)
+
+        try:
+            result = create_inbox_note(
+                cfg.knowledge_vault_path,
+                title=title,
+                body=body,
+                note_type="conversation_summary",
+                status="draft",
+            )
+        except ObsidianInboxError as exc:
+            raise ApiError(
+                status_code=400,
+                code="invalid_request",
+                message="Conversation export failed.",
+                recovery_hint=str(exc),
+            ) from exc
+
+        return ConversationExportResponse(
+            exported=True,
+            relative_path=result.relative_path,
+            filename=result.filename,
+        )
+
     @app.post("/chat", response_model=ChatResponse, dependencies=[Depends(require_api_key(cfg))])
     def chat(payload: ChatRequest) -> ChatResponse:
         message = payload.message.strip()
@@ -245,6 +292,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
 
     return app
+
+
+def _format_conversation_body(messages: list, session_id: str | None) -> str:
+    session_short = session_id[:8] if session_id else "anonyme"
+    exchanges = sum(1 for m in messages if m.role == "user")
+    lines = [
+        f"Session : {session_short}",
+        f"Échanges : {exchanges}",
+        "",
+        "---",
+        "",
+    ]
+    for msg in messages:
+        if msg.role == "user":
+            lines.append(f"**[vous]** {msg.content}")
+            lines.append("")
+        elif msg.role == "assistant":
+            lines.append(f"**[VIVI]** {msg.content}")
+            lines.append("")
+            lines.append("---")
+            lines.append("")
+    return "\n".join(lines).rstrip()
 
 
 def _build_rag_context(sources: list) -> str:

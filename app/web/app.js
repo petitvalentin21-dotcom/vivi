@@ -4,6 +4,7 @@ let authEnabled = false;
 let lastUserMessage = "";
 let activeInboxCaptureType = "";
 let lastInboxPath = "";
+let conversationLog = [];
 
 function setText(id, value) {
   const el = document.getElementById(id);
@@ -785,7 +786,10 @@ async function sendChat(event) {
       return;
     }
 
-    appendMessage("VIVI", payload.answer || "(réponse vide)");
+    const answer = payload.answer || "(réponse vide)";
+    appendMessage("VIVI", answer);
+    conversationLog.push({ role: "user", content: message });
+    conversationLog.push({ role: "assistant", content: answer });
     setCurrentSessionId(payload.session_id || "");
     renderSources(payload.sources || []);
     messageEl.value = "";
@@ -799,7 +803,22 @@ async function sendChat(event) {
   }
 }
 
+function exportConversation() {
+  const messages = conversationLog.slice();
+  if (!messages.some((m) => m.role === "user")) return;
+  conversationLog = [];
+  const body = JSON.stringify({ session_id: currentSessionId || null, messages });
+  try {
+    fetch("/conversation/export", {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body,
+    });
+  } catch (_) {}
+}
+
 function resetConversation() {
+  exportConversation();
   document.getElementById("chat-log").innerHTML = "";
   document.getElementById("sources-list").innerHTML = "";
   const sourcesPanel = document.getElementById("sources-panel");
@@ -808,8 +827,15 @@ function resetConversation() {
   const sourcesTitle = document.getElementById("sources-title");
   if (sourcesTitle) sourcesTitle.textContent = "Sources";
   setCurrentSessionId("");
-  showError("Conversation réinitialisée localement.");
+  showError("Conversation réinitialisée — export dans Obsidian Inbox.");
 }
+
+window.addEventListener("beforeunload", () => {
+  if (!conversationLog.some((m) => m.role === "user")) return;
+  const data = JSON.stringify({ session_id: currentSessionId || null, messages: conversationLog });
+  navigator.sendBeacon("/conversation/export", new Blob([data], { type: "application/json" }));
+  conversationLog = [];
+});
 
 window.addEventListener("DOMContentLoaded", () => {
   setCurrentSessionId(currentSessionId);
