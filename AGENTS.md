@@ -1,4 +1,6 @@
-# AGENTS.md — VIVI Project Instructions
+# AGENTS.md — VIVI Project Instructions (Codex/legacy)
+
+> **Claude Code** : utiliser `CLAUDE.md` à la racine du repo. Ce fichier reste valide pour Codex mais n'est pas auto-chargé par Claude Code.
 
 ## 1. Project identity
 

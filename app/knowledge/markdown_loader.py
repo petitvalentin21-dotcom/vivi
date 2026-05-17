@@ -5,7 +5,7 @@ from pathlib import Path
 
 from app.knowledge.sources import MarkdownNote
 
-_INCLUDED_PREFIXES = {"00_product", "01_user_docs", "02_architecture", "03_decisions", "04_backlog", "05_runs"}
+_INCLUDED_PREFIXES = {"00_product", "01_user_docs", "02_architecture", "03_decisions", "04_backlog", "05_runs", "10_nutrition"}
 _EXCLUDED_PARTS = {".obsidian", "90_generated", "91_runtime", "92_inbox", "99_archive", "tmp", "data"}
 _HEADING_RE = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.MULTILINE)
 _H1_RE = re.compile(r"^#\s+(.+?)\s*$", re.MULTILINE)
