@@ -92,6 +92,8 @@ class KnowledgeSearchResult(BaseModel):
     score: float
     excerpt: str
     chunk_text: str
+    confidence_label: str = "unknown"
+    is_low_confidence: bool = False
 
 
 class KnowledgeSearchResponse(BaseModel):

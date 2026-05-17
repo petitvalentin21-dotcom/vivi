@@ -303,6 +303,23 @@ textarea:focus-visible {
   background: #fbfcfd;
 }
 
+.source-item--low {
+  border-left-color: #c4855a;
+  background: #fdf8f4;
+}
+
+.source-badge-low {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #8b4c1e;
+  background: #fde8d8;
+  border: 1px solid #f0c4a0;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  white-space: nowrap;
+  align-self: center;
+}
+
 .source-head {
   display: flex;
   gap: 0.5rem;

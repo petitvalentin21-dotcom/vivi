@@ -107,8 +107,8 @@ def test_web_js_renders_readable_source_cards() -> None:
     client = TestClient(create_app(Settings()))
     js = client.get("/web/app.js")
     assert 'document.createElement("article")' in js.text
-    assert 'item.className = "source-item"' in js.text
-    assert 'item.setAttribute("aria-label", `Source ${sourceNumber}: ${label}`);' in js.text
+    assert '"source-item"' in js.text
+    assert 'item.setAttribute("aria-label"' in js.text
     assert 'title.className = "source-title"' in js.text
     assert 'pathEl.className = "source-path"' in js.text
     assert 'scoreLabel.className = "source-score"' in js.text

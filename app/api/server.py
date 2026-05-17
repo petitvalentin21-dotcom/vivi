@@ -268,6 +268,8 @@ def _source_api_payload(source: Source) -> dict:
         "score": source.score,
         "excerpt": source.excerpt,
         "chunk_text": source.chunk_text,
+        "confidence_label": source.confidence_label,
+        "is_low_confidence": source.is_low_confidence,
     }
 
 

@@ -565,14 +565,15 @@ function renderSources(sources) {
 
   sources.forEach((src, index) => {
     const item = document.createElement("article");
-    item.className = "source-item";
+    const isLow = Boolean(src.is_low_confidence);
+    item.className = isLow ? "source-item source-item--low" : "source-item";
     const label = src.title || src.section || src.path || "source";
     const path = src.path || "";
     const sourceText = src.chunk_text || src.content || src.full_text || src.excerpt || "";
     const score = typeof src.score === "number" ? `score=${src.score.toFixed(2)}` : "score=n/a";
     const sourceNumber = index + 1;
 
-    item.setAttribute("aria-label", `Source ${sourceNumber}: ${label}`);
+    item.setAttribute("aria-label", `Source ${sourceNumber}: ${label}${isLow ? " (confiance faible)" : ""}`);
 
     const header = document.createElement("div");
     header.className = "source-head";
@@ -589,7 +590,15 @@ function renderSources(sources) {
     scoreLabel.className = "source-score";
     scoreLabel.textContent = score;
 
-    header.append(indexLabel, title, scoreLabel);
+    if (isLow) {
+      const badge = document.createElement("span");
+      badge.className = "source-badge-low";
+      badge.title = "Cette source a un score de pertinence faible.";
+      badge.textContent = "faible";
+      header.append(indexLabel, title, scoreLabel, badge);
+    } else {
+      header.append(indexLabel, title, scoreLabel);
+    }
 
     const pathEl = document.createElement("div");
     pathEl.className = "source-path";
