@@ -1,0 +1,19 @@
+#!/bin/sh
+# Bloque les commits FEAT sans run log dans knowledge_vault/05_runs/.
+# Installer : cp hooks/commit-msg .git/hooks/commit-msg && chmod +x .git/hooks/commit-msg
+
+commit_msg=$(cat "$1")
+
+case "$commit_msg" in
+  FEAT*)
+    if git diff --cached --name-only | grep -q "^knowledge_vault/05_runs/"; then
+      exit 0
+    fi
+    printf '\n[VIVI] ❌  Commit FEAT bloqué — run log manquant.\n'
+    printf '   Crée knowledge_vault/05_runs/%s_FEAT-slug.md\n' "$(date +%Y-%m-%d)"
+    printf '   puis git add ce fichier avant de committer.\n\n'
+    exit 1
+    ;;
+esac
+
+exit 0

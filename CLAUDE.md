@@ -42,7 +42,7 @@ tests/
 knowledge_vault/
 ```
 
-Endpoints existants : `GET /health`, `GET /runtime/info`, `POST /chat`, `GET /knowledge/search`, `POST /obsidian/inbox`.
+Endpoints existants : `GET /health`, `GET /runtime/info`, `POST /chat`, `GET /knowledge/search`, `POST /obsidian/inbox`, `POST /conversation/export`.
 
 ---
 
@@ -78,7 +78,7 @@ Un commit par FEAT. Le user contrôle les commits sauf instruction explicite.
 
 ### Run logs
 
-Après chaque FEAT significatif, créer `knowledge_vault/05_runs/YYYY-MM-DD_FEAT-slug.md` :
+Après chaque FEAT significatif, créer `knowledge_vault/05_runs/YYYY-MM-DD_FEAT-slug.md` et le stager **avant** le commit. Le hook `commit-msg` bloque tout commit `FEAT*` sans run log stagé.
 
 ```yaml
 ---
@@ -89,6 +89,16 @@ llm_priority: low
 updated: YYYY-MM-DD
 ---
 ```
+
+### Git hooks
+
+Le hook `hooks/commit-msg` est versionné dans le repo. À installer une fois :
+
+```bash
+cp hooks/commit-msg .git/hooks/commit-msg && chmod +x .git/hooks/commit-msg
+```
+
+Ce hook bloque les commits `FEAT*` si aucun fichier `knowledge_vault/05_runs/` n'est stagé.
 
 ### Frontmatter standard vault
 
