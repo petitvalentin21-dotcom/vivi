@@ -10,10 +10,15 @@ DEFAULT_MAX_CHUNKS_PER_PATH = 2
 LOW_CONFIDENCE_MIN_SCORE = 3.0
 LOW_CONFIDENCE_RATIO = 0.35
 _PRIORITY_RANK: dict[str, int] = {"high": 0, "medium": 1, "low": 2}
+_PRIORITY_BOOST: dict[str, float] = {"high": 1.0, "medium": 0.0, "low": -0.5}
 
 
 def _priority_rank(metadata: dict) -> int:
     return _PRIORITY_RANK.get(str(metadata.get("llm_priority", "")).lower(), 1)
+
+
+def _priority_boost(metadata: dict) -> float:
+    return _PRIORITY_BOOST.get(str(metadata.get("llm_priority", "")).lower(), 0.0)
 
 
 def retrieve_lexical(
@@ -139,6 +144,7 @@ def _score_chunk(query: str, tokens: list[str], chunk: NoteChunk) -> float:
         if token_count:
             score += min(3.0, token_count * 0.5)
 
+    score += _priority_boost(chunk.metadata)
     return score
 
 

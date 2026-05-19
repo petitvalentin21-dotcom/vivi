@@ -44,12 +44,20 @@ def split_into_chunks(notes: list[MarkdownNote], max_chars: int = 1200) -> list[
                 continue
 
             part_index = 0
-            for start in range(0, len(content), normalized_max):
-                piece = content[start : start + normalized_max].strip()
-                if not piece:
-                    continue
-                chunks.append(_build_chunk(note, section, piece, part_index))
-                part_index += 1
+            pos = 0
+            while pos < len(content):
+                end = pos + normalized_max
+                if end < len(content):
+                    ws = content.rfind(" ", pos, end)
+                    if ws > pos:
+                        end = ws
+                piece = content[pos:end].strip()
+                if piece:
+                    chunks.append(_build_chunk(note, section, piece, part_index))
+                    part_index += 1
+                pos = end
+                while pos < len(content) and content[pos] in " \n":
+                    pos += 1
 
     return chunks
 
