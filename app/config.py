@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -19,6 +19,8 @@ class Settings:
     max_request_bytes: int = 1_048_576
     rag_top_k: int = 5
     external_providers_enabled: bool = False
+    log_encryption_key: str = field(default_factory=lambda: os.environ.get("VIVI_LOG_ENCRYPTION_KEY", ""))
+    session_log_path: str = "data/sessions"
 
     @property
     def auth_enabled(self) -> bool:
@@ -42,6 +44,8 @@ def load_settings() -> Settings:
         max_request_bytes=_env_int("VIVI_MAX_REQUEST_BYTES", 1_048_576),
         rag_top_k=_env_int("VIVI_RAG_TOP_K", 5),
         external_providers_enabled=_env_bool("VIVI_EXTERNAL_PROVIDERS_ENABLED", False),
+        log_encryption_key=_env_str("VIVI_LOG_ENCRYPTION_KEY", ""),
+        session_log_path=_env_str("VIVI_SESSION_LOG_PATH", "data/sessions"),
     )
 
 

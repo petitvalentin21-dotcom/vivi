@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Query
@@ -25,6 +26,7 @@ from app.knowledge import ObsidianInboxError, create_inbox_note, load_markdown_n
 from app.knowledge.sources import Source
 from app.llm import LMStudioClient
 from app.runtime.status import build_runtime_info
+from app.sessions.logger import SessionLogger
 from app.sessions.store import SessionStore
 
 _SYSTEM_PROMPT = (
@@ -47,6 +49,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     ensure_runtime_dirs(cfg)
     session_store = SessionStore(cfg.session_store_path)
     session_store.ensure_store()
+
+    try:
+        session_logger = SessionLogger(cfg.session_log_path, cfg.log_encryption_key)
+    except ValueError as exc:
+        print(f"FATAL: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     app = FastAPI(title="VIVI Backend", version=__version__)
     app.add_exception_handler(ApiError, api_error_handler)
@@ -280,6 +288,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 {"role": "assistant", "content": answer},
             ],
         )
+
+        session_logger.log_exchange(message, answer, completion.model)
 
         return ChatResponse(
             answer=answer,

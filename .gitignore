@@ -254,6 +254,9 @@ knowledge_vault/91_runtime/*
 # Logs / runtime
 logs/
 data/runtime/
+data/sessions/raw/
+data/sessions/processed/
+data/current_session.json
 *.log
 
 # Node / frontend, if added later
