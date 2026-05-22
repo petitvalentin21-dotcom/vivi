@@ -250,6 +250,7 @@ Thumbs.db
 # Obsidian local UI state
 knowledge_vault/.obsidian/*
 knowledge_vault/91_runtime/*
+knowledge_vault/92_inbox/*
 
 # Logs / runtime
 logs/
