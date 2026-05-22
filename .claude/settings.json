@@ -23,7 +23,8 @@
       "Bash(cd *)",
       "Bash(pwd)",
       "Bash(which *)",
-      "Bash(where *)"
+      "Bash(where *)",
+      "Read(**)"
     ]
   }
 }
