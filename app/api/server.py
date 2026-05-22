@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import sys
+import sys, json
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from app import __version__
@@ -25,6 +25,7 @@ from app.config import Settings, ensure_runtime_dirs, load_settings
 from app.knowledge import ObsidianInboxError, create_inbox_note, load_markdown_notes, retrieve_lexical, split_into_chunks
 from app.knowledge.sources import Source
 from app.llm import LMStudioClient
+from app.llm.lmstudio import LMStudioRequestException
 from app.runtime.status import build_runtime_info
 from app.sessions.logger import SessionLogger
 from app.sessions.store import SessionStore
@@ -148,7 +149,27 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         dependencies=[Depends(require_api_key(cfg))],
     )
     def conversation_export(payload: ConversationExportRequest) -> ConversationExportResponse:
-        user_messages = [m for m in payload.messages if m.role == "user"]
+        from datetime import date
+
+        session_id = str(payload.session_id or "").strip() or None
+        messages = list(payload.messages)
+        session_meta: dict = {}
+
+        if not messages and session_id:
+            session = session_store.get_session(session_id)
+            if session:
+                raw = session.get("messages", [])
+                messages = [
+                    type("M", (), {"role": m["role"], "content": m["content"]})()
+                    for m in raw
+                    if isinstance(m, dict) and m.get("role") and m.get("content")
+                ]
+                session_meta = {
+                    "created_at": str(session.get("created_at", "")),
+                    "updated_at": str(session.get("updated_at", "")),
+                }
+
+        user_messages = [m for m in messages if m.role == "user"]
         if not user_messages:
             raise ApiError(
                 status_code=400,
@@ -157,13 +178,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 recovery_hint="Send at least one user message before exporting.",
             )
 
-        session_id = str(payload.session_id or "").strip() or None
         session_short = session_id[:8] if session_id else "anonyme"
-        from datetime import date
-
         today = date.today().isoformat()
         title = f"Conversation VIVI — {today} — {session_short}"
-        body = _format_conversation_body(payload.messages, session_id)
+        body = _format_conversation_body(messages, session_id, session_meta)
 
         try:
             result = create_inbox_note(
@@ -301,19 +319,113 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             error=None,
         )
 
+    @app.post("/chat/stream", dependencies=[Depends(require_api_key(cfg))])
+    def chat_stream(payload: ChatRequest) -> StreamingResponse:
+        message = payload.message.strip()
+        if not message:
+            raise ApiError(
+                status_code=400,
+                code="invalid_request",
+                message="Message must not be empty.",
+                recovery_hint="Provide a non-empty message.",
+            )
+
+        session_id = str(payload.session_id or "").strip()
+        if not session_id:
+            session_id = session_store.create_session()
+        elif session_store.get_session(session_id) is None:
+            raise ApiError(
+                status_code=404,
+                code="session_not_found",
+                message="Session not found.",
+                recovery_hint="Create a new session or use a known session_id.",
+            )
+
+        sources: list = []
+        rag_context = ""
+        exists, notes, vault_error = load_markdown_notes(cfg.knowledge_vault_path)
+        if exists:
+            chunks = split_into_chunks(notes)
+            selected_top_k = payload.max_sources if payload.max_sources is not None else cfg.rag_top_k
+            sources = retrieve_lexical(message, chunks, selected_top_k)
+            rag_context = _build_rag_context(sources)
+
+        messages = [{"role": "system", "content": _SYSTEM_PROMPT}]
+        if rag_context:
+            messages.append({"role": "system", "content": f"{_RAG_PROMPT}\n\n{rag_context}"})
+        else:
+            messages.append(
+                {"role": "system", "content": f"{_RAG_PROMPT}\n\nAucune source Obsidian pertinente n'a ete trouvee."}
+            )
+        messages.extend(session_store.last_messages_for_prompt(session_id, limit=4))
+        messages.append({"role": "user", "content": message})
+
+        client = LMStudioClient(
+            base_url=cfg.lmstudio_base_url,
+            model=cfg.lmstudio_model,
+            api_key=cfg.lmstudio_api_key,
+            timeout_seconds=cfg.llm_timeout_seconds,
+        )
+        stream_payload, err = client.prepare_stream_payload(
+            messages,
+            temperature=payload.temperature,
+            max_tokens=payload.max_tokens,
+        )
+        if err is not None:
+            raise ApiError(
+                status_code=err.status_code,
+                code=err.code,
+                message=err.message,
+                recovery_hint=err.recovery_hint,
+            )
+
+        sources_payload = [_source_api_payload(s) for s in sources]
+
+        def generate():
+            yield f"data: {json.dumps({'type': 'meta', 'session_id': session_id, 'sources': sources_payload})}\n\n"
+            full_answer: list[str] = []
+            try:
+                for delta in client.iter_stream(stream_payload):
+                    full_answer.append(delta)
+                    yield f"data: {json.dumps({'type': 'delta', 'delta': delta})}\n\n"
+            except LMStudioRequestException as exc:
+                yield f"data: {json.dumps({'type': 'error', 'code': exc.error.code, 'message': exc.error.message})}\n\n"
+                return
+            answer = "".join(full_answer)
+            if answer:
+                session_store.append_messages(
+                    session_id,
+                    [
+                        {"role": "user", "content": message},
+                        {"role": "assistant", "content": answer},
+                    ],
+                )
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+        return StreamingResponse(
+            generate(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
     return app
 
 
-def _format_conversation_body(messages: list, session_id: str | None) -> str:
+def _format_conversation_body(messages: list, session_id: str | None, session_meta: dict | None = None) -> str:
     session_short = session_id[:8] if session_id else "anonyme"
     exchanges = sum(1 for m in messages if m.role == "user")
     lines = [
         f"Session : {session_short}",
         f"Échanges : {exchanges}",
-        "",
-        "---",
-        "",
     ]
+    if session_meta:
+        created = str(session_meta.get("created_at", ""))
+        updated = str(session_meta.get("updated_at", ""))
+        if created:
+            lines.append(f"Démarré : {created[:19].replace('T', ' ')}")
+        if updated and updated != created:
+            lines.append(f"Dernière activité : {updated[:19].replace('T', ' ')}")
+    lines += ["", "---", ""]
     for msg in messages:
         if msg.role == "user":
             lines.append(f"**[vous]** {msg.content}")

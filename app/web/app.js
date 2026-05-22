@@ -52,6 +52,27 @@ function appendMessage(role, content) {
   log.scrollTop = log.scrollHeight;
 }
 
+function createStreamingMessage(role) {
+  const log = document.getElementById("chat-log");
+  const block = document.createElement("div");
+  block.className = `msg ${role === "Utilisateur" ? "msg-user" : "msg-assistant"}`;
+  const label = document.createElement("strong");
+  label.textContent = role;
+  const body = document.createElement("div");
+  body.className = "msg-content";
+  block.append(label, body);
+  log.appendChild(block);
+  log.scrollTop = log.scrollHeight;
+  return body;
+}
+
+function updateStreamingContent(bodyEl, text) {
+  bodyEl.innerHTML = "";
+  renderMarkdownLite(bodyEl, text);
+  const log = document.getElementById("chat-log");
+  log.scrollTop = log.scrollHeight;
+}
+
 function appendInlineMarkdown(parent, text) {
   const value = String(text || "");
   const parts = value.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
@@ -770,31 +791,64 @@ async function sendChat(event) {
 
   appendMessage("Utilisateur", message);
   lastUserMessage = message;
+  messageEl.value = "";
+
+  const bodyEl = createStreamingMessage("VIVI");
+  let fullAnswer = "";
+  let buffer = "";
 
   try {
-    const res = await fetch("/chat", {
+    const res = await fetch("/chat/stream", {
       method: "POST",
       headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ message, use_rag: true, mode: "chat", session_id: currentSessionId || null }),
     });
 
-    const payload = await res.json().catch(() => ({}));
-
     if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
       showNormalizedError(normalizeUiError({ status: res.status, payload }));
-      appendMessage("VIVI", "Erreur lors de la requête.");
+      updateStreamingContent(bodyEl, "Erreur lors de la requête.");
       return;
     }
 
-    const answer = payload.answer || "(réponse vide)";
-    appendMessage("VIVI", answer);
-    conversationLog.push({ role: "user", content: message });
-    conversationLog.push({ role: "assistant", content: answer });
-    setCurrentSessionId(payload.session_id || "");
-    renderSources(payload.sources || []);
-    messageEl.value = "";
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        let evt;
+        try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+
+        if (evt.type === "meta") {
+          setCurrentSessionId(evt.session_id || "");
+          renderSources(evt.sources || []);
+        } else if (evt.type === "delta") {
+          fullAnswer += evt.delta;
+          updateStreamingContent(bodyEl, fullAnswer);
+        } else if (evt.type === "error") {
+          showNormalizedError(normalizeUiError({ status: 502, payload: { detail: evt.message } }));
+          updateStreamingContent(bodyEl, "Erreur lors de la requête.");
+          return;
+        }
+      }
+    }
+
+    if (fullAnswer) {
+      conversationLog.push({ role: "user", content: message });
+      conversationLog.push({ role: "assistant", content: fullAnswer });
+    } else {
+      updateStreamingContent(bodyEl, "(réponse vide)");
+    }
   } catch (err) {
-    appendMessage("VIVI", "Erreur lors de la requête.");
+    updateStreamingContent(bodyEl, "Erreur lors de la requête.");
     showNormalizedError(normalizeUiError({ networkError: err }));
   } finally {
     button.disabled = false;
@@ -804,10 +858,9 @@ async function sendChat(event) {
 }
 
 function exportConversation() {
-  const messages = conversationLog.slice();
-  if (!messages.some((m) => m.role === "user")) return;
+  if (!currentSessionId && !conversationLog.some((m) => m.role === "user")) return;
+  const body = JSON.stringify({ session_id: currentSessionId || null, messages: conversationLog.slice() });
   conversationLog = [];
-  const body = JSON.stringify({ session_id: currentSessionId || null, messages });
   try {
     fetch("/conversation/export", {
       method: "POST",
@@ -815,6 +868,28 @@ function exportConversation() {
       body,
     });
   } catch (_) {}
+}
+
+async function saveConversation() {
+  if (!currentSessionId && !conversationLog.some((m) => m.role === "user")) {
+    showError("Aucune conversation à sauvegarder.");
+    return;
+  }
+  try {
+    const res = await fetch("/conversation/export", {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ session_id: currentSessionId || null, messages: conversationLog.slice() }),
+    });
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showError(`Sauvegardé → ${data.filename || "Obsidian Inbox"}`);
+    } else {
+      showError("Erreur lors de la sauvegarde.");
+    }
+  } catch (_) {
+    showError("Erreur lors de la sauvegarde.");
+  }
 }
 
 function resetConversation() {
@@ -844,6 +919,7 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("chat-form").addEventListener("submit", sendChat);
   document.getElementById("refresh-runtime-btn").addEventListener("click", loadRuntime);
   document.getElementById("reset-conversation-btn").addEventListener("click", resetConversation);
+  document.getElementById("save-conversation-btn").addEventListener("click", saveConversation);
   document.getElementById("apply-api-key-btn").addEventListener("click", applyApiKey);
   document.getElementById("clear-api-key-btn").addEventListener("click", clearApiKey);
   document.getElementById("memory-info-btn").addEventListener("click", () => openInboxCapture("info"));

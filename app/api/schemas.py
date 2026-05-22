@@ -131,7 +131,7 @@ class ConversationMessage(BaseModel):
 
 class ConversationExportRequest(BaseModel):
     session_id: str | None = None
-    messages: list[ConversationMessage]
+    messages: list[ConversationMessage] = Field(default_factory=list)
 
 
 class ConversationExportResponse(BaseModel):

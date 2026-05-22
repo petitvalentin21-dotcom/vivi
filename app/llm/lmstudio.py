@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any, Iterator, Sequence
 
 import httpx
 
@@ -199,6 +200,85 @@ class LMStudioClient:
             usage=usage,
             finish_reason=finish_reason,
         ), None
+
+    def prepare_stream_payload(
+        self,
+        messages: Sequence[dict[str, Any]],
+        *,
+        model: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> tuple[dict[str, Any] | None, LMStudioError | None]:
+        selected_model = str(model or self.model).strip()
+        if not selected_model:
+            return None, self._error(
+                code="lmstudio_model_missing",
+                message="LM Studio model is not configured.",
+                recovery_hint="Set VIVI_LMSTUDIO_MODEL before sending a chat completion request.",
+                status_code=400,
+            )
+        validation_error = self._validate_messages(messages)
+        if validation_error is not None:
+            return None, validation_error
+        payload: dict[str, Any] = {
+            "model": selected_model,
+            "messages": list(messages),
+            "stream": True,
+        }
+        if temperature is not None:
+            payload["temperature"] = float(temperature)
+        if max_tokens is not None:
+            payload["max_tokens"] = int(max_tokens)
+        return payload, None
+
+    def iter_stream(self, payload: dict[str, Any]) -> Iterator[str]:
+        url = self._build_url("/chat/completions")
+        headers = self._outbound_headers()
+        try:
+            with httpx.stream(
+                "POST", url, json=payload, headers=headers, timeout=self.timeout_seconds
+            ) as response:
+                if response.status_code >= 400:
+                    response.read()
+                    raise LMStudioRequestException(
+                        self._error(
+                            code="lmstudio_http_error",
+                            message=f"LM Studio returned HTTP {response.status_code}.",
+                            recovery_hint="Verify LM Studio endpoint and model setup.",
+                            status_code=502,
+                        )
+                    )
+                for line in response.iter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data = line[6:].strip()
+                    if data == "[DONE]":
+                        return
+                    try:
+                        chunk = json.loads(data)
+                        delta = chunk["choices"][0]["delta"].get("content", "")
+                        if delta:
+                            yield delta
+                    except (json.JSONDecodeError, KeyError, IndexError, TypeError):
+                        continue
+        except httpx.TimeoutException as exc:
+            raise LMStudioRequestException(
+                self._error(
+                    code="lmstudio_timeout",
+                    message="LM Studio request timed out.",
+                    recovery_hint="Increase VIVI_LLM_TIMEOUT_SECONDS or verify LM Studio responsiveness.",
+                    status_code=504,
+                )
+            ) from exc
+        except httpx.RequestError as exc:
+            raise LMStudioRequestException(
+                self._error(
+                    code="lmstudio_unavailable",
+                    message="LM Studio is unavailable.",
+                    recovery_hint="Start LM Studio and verify VIVI_LMSTUDIO_BASE_URL.",
+                    status_code=503,
+                )
+            ) from exc
 
     def _validate_messages(self, messages: Sequence[dict[str, Any]]) -> LMStudioError | None:
         if not isinstance(messages, Sequence) or not messages:

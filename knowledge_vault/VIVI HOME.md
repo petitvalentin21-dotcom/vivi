@@ -34,6 +34,7 @@ Le MVP doit permettre :
 - 91_runtime : données runtime/index/logs
 - 92_inbox : propositions à valider
 - 99_archive : archives
+
 ## Hubs documentaires MVP
 
 - [[01_user_docs/VIVI_MVP_DOC_HUB]]
