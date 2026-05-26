@@ -4,11 +4,37 @@
 
 ---
 
-## Équipe
+## Pivot personnel
 
-- **[Ton nom]** — owner technique
-- **Vivi** — [rôle à compléter]
-- **Agents IA** — assistants, jamais décideurs
+Vivi est un projet **strictement personnel**. Pas de commercialisation, pas de structure juridique, pas de marketing. Le porteur opère en parallèle d'un job. Horizon : 3-5 ans sans revenu projet.
+
+**Garde-fou permanent** : éviter le sur-engagement et la sur-ingénierie.
+
+---
+
+## Équipe Vivi
+
+Ces casquettes sont un **menu, pas un protocole** — elles sont invoquées quand elles servent.
+
+| Casquette | Responsabilité |
+| --------- | -------------- |
+| CEO | Vision, arbitrage, validation finale (= porteur) |
+| CPO | Scope produit, priorités, UX |
+| COO | Qualité livrée, workflow |
+| CTO | Choix stack, cohérence architecturale |
+| Architect | Design système, interfaces, évolutivité |
+| DevLead | Implémentation, revue de code |
+| QA | Tests, couverture, non-régression |
+| CISO | Sécurité, analyse menaces |
+| DPO | Vie privée, minimisation, zero-knowledge |
+| ResearchLead | Veille, benchmarks, comparatifs |
+| Linguiste | NLP, qualité des prompts, réponses LLM |
+| Historien | Traçabilité des décisions, mémoire projet |
+| Sponsor | Garde-fou contre sur-engagement et sur-ingénierie |
+
+**Agents IA** — assistants, jamais décideurs.
+
+---
 
 ## Comment lire ce repo
 
@@ -56,4 +82,4 @@ Jamais d'exception sans validation humaine explicite.
 ## Évolution de ce fichier
 
 `CLAUDE.md` et `.claude/*` ne sont jamais modifiés par un agent.
-Toute mise à jour passe par une PR humaine, validée par [toi] **et** Vivi.
+Toute mise à jour passe par une PR humaine, validée par le porteur.
