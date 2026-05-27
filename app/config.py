@@ -10,9 +10,8 @@ class Settings:
     host: str = "127.0.0.1"
     port: int = 8000
     api_key: str = ""
-    lmstudio_base_url: str = "http://127.0.0.1:1234"
-    lmstudio_model: str = ""
-    lmstudio_api_key: str = ""
+    ollama_base_url: str = "http://localhost:11434"
+    llm_model: str = ""
     llm_timeout_seconds: float = 60.0
     knowledge_vault_path: str = "knowledge_vault"
     session_store_path: str = "data/runtime/sessions.json"
@@ -35,9 +34,8 @@ def load_settings() -> Settings:
         host=_env_str("VIVI_HOST", "127.0.0.1"),
         port=_env_int("VIVI_PORT", 8000),
         api_key=_env_str("VIVI_API_KEY", ""),
-        lmstudio_base_url=_env_str("VIVI_LMSTUDIO_BASE_URL", "http://127.0.0.1:1234"),
-        lmstudio_model=_env_str("VIVI_LMSTUDIO_MODEL", ""),
-        lmstudio_api_key=_env_str("VIVI_LMSTUDIO_API_KEY", ""),
+        ollama_base_url=_env_str("VIVI_OLLAMA_BASE_URL", "http://localhost:11434"),
+        llm_model=_env_str("VIVI_LLM_MODEL", ""),
         llm_timeout_seconds=_env_float("VIVI_LLM_TIMEOUT_SECONDS", 60.0),
         knowledge_vault_path=_env_str("VIVI_KNOWLEDGE_VAULT_PATH", "knowledge_vault"),
         session_store_path=_env_str("VIVI_SESSION_STORE_PATH", "data/runtime/sessions.json"),

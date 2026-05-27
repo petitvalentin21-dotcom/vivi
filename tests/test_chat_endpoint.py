@@ -8,27 +8,27 @@ from fastapi.testclient import TestClient
 
 from app.api.server import create_app
 from app.config import Settings
-from app.llm.lmstudio import LMStudioCompletionResult, LMStudioError
+from app.llm.base import LLMCompletionResult, LLMError
 
 
 def _settings(tmp_path: Path, api_key: str = "") -> Settings:
     return Settings(
         api_key=api_key,
-        lmstudio_model="local-model",
+        llm_model="local-model",
         session_store_path=str(tmp_path / "runtime" / "sessions.json"),
         knowledge_vault_path=str(tmp_path / "knowledge_vault"),
     )
 
 
 def _ok_completion():
-    return LMStudioCompletionResult(content="Bonjour", model="local-model", provider="lmstudio")
+    return LLMCompletionResult(content="Bonjour", model="local-model", provider="ollama")
 
 
 def test_chat_valid_returns_200_and_contract(monkeypatch, tmp_path: Path) -> None:
     def fake_chat_completion(self, messages, model=None, temperature=None, max_tokens=None):
         return _ok_completion(), None
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
 
     client = TestClient(create_app(_settings(tmp_path)))
     response = client.post("/chat", json={"message": "Salut"})
@@ -37,7 +37,7 @@ def test_chat_valid_returns_200_and_contract(monkeypatch, tmp_path: Path) -> Non
     payload = response.json()
     assert payload["answer"] == "Bonjour"
     assert payload["session_id"]
-    assert payload["provider"]["name"] == "lmstudio"
+    assert payload["provider"]["name"] == "ollama"
     assert payload["sources"] == []
     assert payload["runtime"]["rag_used"] is False
     assert payload["runtime"]["sources_count"] == 0
@@ -60,29 +60,29 @@ def test_chat_mode_not_supported_returns_safe_error(tmp_path: Path) -> None:
     assert response.json()["error"]["code"] == "invalid_request"
 
 
-def test_chat_lmstudio_unavailable_returns_safe_error(monkeypatch, tmp_path: Path) -> None:
-    err = LMStudioError(
-        code="lmstudio_unavailable",
-        message="LM Studio is unavailable.",
-        recovery_hint="Start LM Studio.",
+def test_chat_ollama_unavailable_returns_safe_error(monkeypatch, tmp_path: Path) -> None:
+    err = LLMError(
+        code="ollama_unavailable",
+        message="Ollama is unavailable.",
+        recovery_hint="Start Ollama.",
         status_code=503,
     )
 
     def fake_chat_completion(self, messages, model=None, temperature=None, max_tokens=None):
         return None, err
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
     client = TestClient(create_app(_settings(tmp_path)))
 
     response = client.post("/chat", json={"message": "Salut"})
     assert response.status_code == 503
-    assert response.json()["error"]["code"] == "lmstudio_unavailable"
+    assert response.json()["error"]["code"] == "ollama_unavailable"
 
 
 def test_chat_model_not_configured_returns_safe_error(monkeypatch, tmp_path: Path) -> None:
-    err = LMStudioError(
-        code="lmstudio_model_missing",
-        message="LM Studio model is not configured.",
+    err = LLMError(
+        code="ollama_model_missing",
+        message="Ollama model is not configured.",
         recovery_hint="Set model.",
         status_code=400,
     )
@@ -90,19 +90,19 @@ def test_chat_model_not_configured_returns_safe_error(monkeypatch, tmp_path: Pat
     def fake_chat_completion(self, messages, model=None, temperature=None, max_tokens=None):
         return None, err
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
     client = TestClient(create_app(_settings(tmp_path)))
 
     response = client.post("/chat", json={"message": "Salut"})
     assert response.status_code == 400
-    assert response.json()["error"]["code"] == "lmstudio_model_missing"
+    assert response.json()["error"]["code"] == "ollama_model_missing"
 
 
 def test_chat_does_not_leak_api_key_in_error(monkeypatch, tmp_path: Path) -> None:
     secret = "sk-secret"
-    err = LMStudioError(
-        code="lmstudio_unavailable",
-        message="LM Studio is unavailable.",
+    err = LLMError(
+        code="ollama_unavailable",
+        message="Ollama is unavailable.",
         recovery_hint="Retry.",
         status_code=503,
     )
@@ -110,7 +110,7 @@ def test_chat_does_not_leak_api_key_in_error(monkeypatch, tmp_path: Path) -> Non
     def fake_chat_completion(self, messages, model=None, temperature=None, max_tokens=None):
         return None, err
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
     client = TestClient(create_app(_settings(tmp_path, api_key=secret)))
 
     response = client.post("/chat", json={"message": "Salut"}, headers={"X-VIVI-API-Key": secret})
@@ -122,7 +122,7 @@ def test_chat_requires_auth_when_api_key_is_set(monkeypatch, tmp_path: Path) -> 
     def fake_chat_completion(self, messages, model=None, temperature=None, max_tokens=None):
         return _ok_completion(), None
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
     client = TestClient(create_app(_settings(tmp_path, api_key="top-secret")))
 
     response = client.post("/chat", json={"message": "Salut"})
@@ -133,7 +133,7 @@ def test_chat_without_api_key_is_accessible(monkeypatch, tmp_path: Path) -> None
     def fake_chat_completion(self, messages, model=None, temperature=None, max_tokens=None):
         return _ok_completion(), None
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
     client = TestClient(create_app(_settings(tmp_path, api_key="")))
 
     response = client.post("/chat", json={"message": "Salut"})
@@ -144,7 +144,7 @@ def test_chat_session_is_created_when_missing(monkeypatch, tmp_path: Path) -> No
     def fake_chat_completion(self, messages, model=None, temperature=None, max_tokens=None):
         return _ok_completion(), None
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
 
     store_path = tmp_path / "runtime" / "sessions.json"
     client = TestClient(create_app(_settings(tmp_path)))
@@ -164,7 +164,7 @@ def test_chat_session_known_is_reused(monkeypatch, tmp_path: Path) -> None:
         captured["calls"] += 1
         return _ok_completion(), None
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
     client = TestClient(create_app(_settings(tmp_path)))
 
     first = client.post("/chat", json={"message": "Salut"}).json()
@@ -180,7 +180,7 @@ def test_chat_unknown_session_returns_session_not_found(monkeypatch, tmp_path: P
     def fake_chat_completion(self, messages, model=None, temperature=None, max_tokens=None):
         return _ok_completion(), None
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
     client = TestClient(create_app(_settings(tmp_path)))
 
     response = client.post("/chat", json={"message": "Salut", "session_id": "unknown"})
@@ -188,7 +188,7 @@ def test_chat_unknown_session_returns_session_not_found(monkeypatch, tmp_path: P
     assert response.json()["error"]["code"] == "session_not_found"
 
 
-def test_chat_does_not_forward_vivi_authorization_to_lmstudio(monkeypatch, tmp_path: Path) -> None:
+def test_chat_does_not_forward_vivi_authorization_to_ollama(monkeypatch, tmp_path: Path) -> None:
     captured = {}
 
     def fake_post(url, json, headers, timeout):
@@ -214,7 +214,8 @@ def test_chat_does_not_forward_vivi_authorization_to_lmstudio(monkeypatch, tmp_p
     assert captured["headers"].get("Authorization") is None
 
 
-def test_chat_uses_only_dedicated_lmstudio_api_key_for_provider_auth(monkeypatch, tmp_path: Path) -> None:
+def test_chat_sends_no_authorization_to_ollama(monkeypatch, tmp_path: Path) -> None:
+    """Ollama n'utilise pas d'API key — aucun header Authorization ne doit être émis."""
     captured = {}
 
     def fake_post(url, json, headers, timeout):
@@ -230,8 +231,7 @@ def test_chat_uses_only_dedicated_lmstudio_api_key_for_provider_auth(monkeypatch
     monkeypatch.setattr(httpx, "post", fake_post)
     settings = Settings(
         api_key="vivi-secret",
-        lmstudio_model="local-model",
-        lmstudio_api_key="lmstudio-secret",
+        llm_model="local-model",
         session_store_path=str(tmp_path / "runtime" / "sessions.json"),
         knowledge_vault_path=str(tmp_path / "knowledge_vault"),
     )
@@ -243,5 +243,4 @@ def test_chat_uses_only_dedicated_lmstudio_api_key_for_provider_auth(monkeypatch
         headers={"Authorization": "Bearer vivi-secret"},
     )
     assert response.status_code == 200
-    assert captured["headers"].get("Authorization") == "Bearer lmstudio-secret"
-    assert captured["headers"].get("Authorization") != "Bearer vivi-secret"
+    assert captured["headers"].get("Authorization") is None

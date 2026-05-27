@@ -13,7 +13,7 @@ def _settings(tmp_path: Path, api_key: str = "") -> Settings:
     (vault / "92_inbox").mkdir(parents=True)
     return Settings(
         api_key=api_key,
-        lmstudio_model="local-model",
+        llm_model="local-model",
         knowledge_vault_path=str(vault),
         session_store_path=str(tmp_path / "runtime" / "sessions.json"),
     )

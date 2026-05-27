@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-import sys, json
+import sys
+import json
+import threading
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Query
@@ -24,8 +26,8 @@ from app.api.schemas import (
 from app.config import Settings, ensure_runtime_dirs, load_settings
 from app.knowledge import ObsidianInboxError, create_inbox_note, load_markdown_notes, retrieve_lexical, split_into_chunks
 from app.knowledge.sources import Source
-from app.llm import LMStudioClient
-from app.llm.lmstudio import LMStudioRequestException
+from app.llm import OllamaClient
+from app.llm.base import LLMRequestException
 from app.runtime.status import build_runtime_info
 from app.sessions.logger import SessionLogger
 from app.sessions.store import SessionStore
@@ -45,6 +47,23 @@ _RAG_PROMPT = (
 )
 
 
+def _log_ollama_startup(cfg: Settings) -> None:
+    """Vérification Ollama au démarrage — log uniquement, ne bloque pas."""
+    try:
+        client = OllamaClient(
+            base_url=cfg.ollama_base_url,
+            model=cfg.llm_model,
+            timeout_seconds=2.0,
+        )
+        status = client.get_provider_status()
+        if status.available:
+            print(f"[VIVI] Ollama ready — model={status.model}", file=sys.stderr)
+        else:
+            print(f"[VIVI] Ollama degraded at startup — {status.error}", file=sys.stderr)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[VIVI] Ollama startup check failed — {exc}", file=sys.stderr)
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     cfg = settings or load_settings()
     ensure_runtime_dirs(cfg)
@@ -56,6 +75,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     except ValueError as exc:
         print(f"FATAL: {exc}", file=sys.stderr)
         sys.exit(1)
+
+    # Startup healthcheck — daemon thread, ne bloque pas le démarrage
+    threading.Thread(target=_log_ollama_startup, args=(cfg,), daemon=True).start()
 
     app = FastAPI(title="VIVI Backend", version=__version__)
     app.add_exception_handler(ApiError, api_error_handler)
@@ -272,10 +294,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         messages.extend(session_store.last_messages_for_prompt(session_id, limit=4))
         messages.append({"role": "user", "content": message})
 
-        client = LMStudioClient(
-            base_url=cfg.lmstudio_base_url,
-            model=cfg.lmstudio_model,
-            api_key=cfg.lmstudio_api_key,
+        client = OllamaClient(
+            base_url=cfg.ollama_base_url,
+            model=cfg.llm_model,
             timeout_seconds=cfg.llm_timeout_seconds,
         )
         completion, err = client.chat_completion(
@@ -293,9 +314,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if completion is None:
             raise ApiError(
                 status_code=502,
-                code="lmstudio_invalid_response",
-                message="LM Studio returned an invalid chat response.",
-                recovery_hint="Retry and verify LM Studio configuration.",
+                code="ollama_invalid_response",
+                message="Ollama returned an invalid chat response.",
+                recovery_hint="Retry and verify Ollama configuration.",
             )
 
         answer = completion.content
@@ -312,7 +333,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return ChatResponse(
             answer=answer,
             session_id=session_id,
-            provider={"name": "lmstudio", "model": completion.model},
+            provider={"name": "ollama", "model": completion.model},
             mode=mode,
             sources=[_source_api_payload(item) for item in sources],
             runtime={"rag_used": rag_used, "sources_count": len(sources), "external_call_used": False},
@@ -360,10 +381,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         messages.extend(session_store.last_messages_for_prompt(session_id, limit=4))
         messages.append({"role": "user", "content": message})
 
-        client = LMStudioClient(
-            base_url=cfg.lmstudio_base_url,
-            model=cfg.lmstudio_model,
-            api_key=cfg.lmstudio_api_key,
+        client = OllamaClient(
+            base_url=cfg.ollama_base_url,
+            model=cfg.llm_model,
             timeout_seconds=cfg.llm_timeout_seconds,
         )
         stream_payload, err = client.prepare_stream_payload(
@@ -388,7 +408,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 for delta in client.iter_stream(stream_payload):
                     full_answer.append(delta)
                     yield f"data: {json.dumps({'type': 'delta', 'delta': delta})}\n\n"
-            except LMStudioRequestException as exc:
+            except LLMRequestException as exc:
                 yield f"data: {json.dumps({'type': 'error', 'code': exc.error.code, 'message': exc.error.message})}\n\n"
                 return
             answer = "".join(full_answer)

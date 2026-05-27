@@ -364,31 +364,31 @@ function toReadableBackendError(payload, status) {
     };
   }
 
-  if (haystack.includes("lmstudio_unavailable") || haystack.includes("lmstudio_timeout")) {
+  if (haystack.includes("ollama_unavailable") || haystack.includes("ollama_timeout")) {
     return {
-      primary: "LM Studio est indisponible.",
-      detail: "Vérifie que LM Studio est lancé, que le serveur local est actif et que l'endpoint est correct.",
+      primary: "Ollama est indisponible.",
+      detail: "Vérifie qu'Ollama est lancé (`ollama serve`) et que VIVI_OLLAMA_BASE_URL est correct.",
     };
   }
 
   if (
-    haystack.includes("lmstudio_model_missing") ||
-    haystack.includes("LM Studio model is not configured") ||
-    haystack.includes("VIVI_LMSTUDIO_MODEL")
+    haystack.includes("ollama_model_missing") ||
+    haystack.includes("Ollama model is not configured") ||
+    haystack.includes("VIVI_LLM_MODEL")
   ) {
     return {
-      primary: "Modèle LM Studio non configuré.",
-      detail: "Configure VIVI_LMSTUDIO_MODEL avant d'envoyer une requête.",
+      primary: "Modèle Ollama non configuré.",
+      detail: "Configure VIVI_LLM_MODEL avant d'envoyer une requête.",
       technical: code ? `[${code}]` : "",
     };
   }
   if (
-    haystack.includes("lmstudio_http_error") &&
-    haystack.includes("LM Studio returned HTTP 401")
+    haystack.includes("ollama_http_error") &&
+    haystack.includes("Ollama returned HTTP 401")
   ) {
     return {
-      primary: "LM Studio refuse la requête.",
-      detail: "Si LM Studio demande une clé, configure uniquement VIVI_LMSTUDIO_API_KEY. Ne pas utiliser VIVI_API_KEY pour LM Studio.",
+      primary: "Ollama refuse la requête.",
+      detail: "Si Ollama demande une authentification, vérifie la configuration du proxy Ollama.",
     };
   }
 

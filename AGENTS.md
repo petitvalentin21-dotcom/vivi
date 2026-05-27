@@ -1,23 +1,14 @@
-# AGENTS.md — VIVI Project Instructions (Codex/legacy)
+# AGENTS.md — VIVI Project Instructions
 
-> **Claude Code** : utiliser `CLAUDE.md` à la racine du repo. Ce fichier reste valide pour Codex mais n'est pas auto-chargé par Claude Code.
+> Valid for Codex, Cursor, and any agent reading this file directly. **Claude Code** uses `CLAUDE.md` as primary entry point.
 
 ## 1. Project identity
 
 You are working on the project VIVI.
 
-VIVI is a new clean project, separate from the legacy VIVI_IA repository.
+VIVI is a personal local AI assistant — strictly personal. No commercialization, no legal structure, no marketing.
 
-VIVI_IA is considered:
-
-- a laboratory;
-- a legacy archive;
-- a source of inspiration;
-- a source for selective audit only.
-
-Do not treat VIVI_IA as the active product.
-
-Do not copy legacy code from VIVI_IA unless explicitly requested.
+VIVI_IA is the legacy laboratory. Do not treat it as the active product. See Appendix A for legacy audit policy.
 
 The active product is VIVI.
 
@@ -25,22 +16,24 @@ The active product is VIVI.
 
 ## 2. Product vision
 
-VIVI is a local personal AI assistant.
+VIVI is a **proactive** local personal AI assistant.
 
-Its first and most important function is simple:
+The first functional domain is **Repas** (meals):
 
-> I talk to VIVI, VIVI answers.
+- daily decision: "what are we having tonight?";
+- weekend batch cooking planning;
+- live shopping list.
 
-The MVP must remain strict:
+Core behaviors:
 
-- dedicated simple web interface;
-- local chat via LM Studio;
-- Obsidian RAG;
-- visible sources;
-- runtime status;
-- simple session memory;
-- simple security;
-- local-first behavior.
+- proactively prompts at 18:30 on weekdays and Saturday mornings;
+- cooking for 2 people with identical preferences;
+- supports batch cooking;
+- uses an internal recipe catalogue as primary source; LLM is a complement, not the sole source.
+
+Architecture principle: one conversational LLM core + specialized Python code modules. **Not a multi-LLM system.**
+
+The LLM contains no business logic. Business logic lives in Python modules.
 
 Everything else is post-MVP unless explicitly approved.
 
@@ -48,222 +41,273 @@ Everything else is post-MVP unless explicitly approved.
 
 ## 3. Source of truth
 
-The main product source of truth is:
+Product and architecture decisions made in Phase 0–4 are authoritative.
 
-- knowledge_vault/00_product/VIVI_MVP_CADRAGE_v0.1.md
+Phase documents are located in:
 
-The backend MVP technical source of truth is:
-
-- knowledge_vault/02_architecture/VIVI_BACKEND_MVP_SPEC_v0.1.md
+- `knowledge_vault/00_product/` — product framing
+- `knowledge_vault/02_architecture/` — validated architecture
+- `knowledge_vault/03_decisions/` — design decisions
 
 Before any implementation task, read:
 
 - AGENTS.md
 - README.md
 - the relevant product or architecture note
-- tmp/codex_last_report.md if present
+- `tmp/codex_last_report.md` if present
 
-If the user request conflicts with the MVP scope, report the conflict before implementing.
+If the user request conflicts with Phase 0–4 scope, report the conflict before implementing.
 
 ---
 
 ## 4. Current repo policy
 
-This repository is a clean VIVI repo.
+This repository is the clean VIVI repo.
 
-It is not a fork cleanup repo.
-
-It is not the legacy VIVI_IA repo.
-
-The current strategy is:
+Strategy:
 
 - build a clean MVP;
 - audit legacy only when useful;
 - import concepts selectively;
 - avoid legacy complexity.
 
-Do not import the old project wholesale.
+Do not import VIVI_IA wholesale.
 
 ---
 
 ## 5. MVP priorities
 
+First domain: Repas.
+
 Priority order:
 
-1. local discussion assistant;
-2. dedicated simple web interface;
-3. LM Studio as local provider;
-4. local chat;
-5. Obsidian RAG;
-6. visible sources;
-7. runtime status;
-8. simple security;
-9. simple session memory.
+1. conversational LLM core (Ollama);
+2. Repas module (daily decision, batch planning, shopping list);
+3. internal recipe catalogue;
+4. proactive scheduling (18:30 weekdays, Saturday morning);
+5. simple session memory;
+6. FastAPI backend with minimal endpoints;
+7. SvelteKit PWA interface.
 
 Control question before every feature:
 
-> Is this required to open VIVI, talk to LM Studio, query Obsidian, see sources, and get a reliable answer?
+> Is this required to support the Repas domain, talk to Ollama, and give a reliable answer?
 
-If no, classify it as post-MVP, backlog, archive, or reject it.
+If no, classify as post-MVP, backlog, or reject.
 
 ---
 
-## 6. Explicitly outside MVP
+## 6. Outside MVP scope
 
 Do not implement in the MVP:
 
-- specialized agents;
-- DEV agent;
-- PM agent;
-- ARCH agent;
-- QA agent;
-- nutrition agent;
-- finance agent;
-- home assistant agent;
+- multi-LLM agents (several LLMs in dialogue);
+- specialized LLM agents (DEV, PM, ARCH, QA, Finance, Home, etc.);
 - auto-improvement agent;
 - automatic skill creation;
 - Codex calls from VIVI;
-- fallback to external providers;
-- OpenAI external provider;
-- Mammouth external provider;
-- Ollama as primary provider;
+- native iOS/Android app (PWA is authorized — see §9);
+- fallback to external providers (OpenAI, Mammouth, etc.);
 - provider registry;
 - multi-provider routing;
-- vector database requirement;
-- embeddings requirement;
+- vector database;
+- embeddings-based retrieval;
 - complex orchestrator;
 - runtime skills;
 - advanced cockpit UI;
-- mobile app;
-- VPN;
 - multi-user support;
-- automatic modification of source Obsidian notes.
+- automatic modification of source Obsidian notes;
+- SQLCipher (post-MVP; use SQLite vanilla at MVP).
 
-These topics may be documented as post-MVP, but must not complicate the MVP implementation.
+These topics may be documented as post-MVP, but must not complicate MVP implementation.
+
+Note: the **Repas module** is authorized — it is a Python code module, not an agent.
 
 ---
 
-## 7. LM Studio provider rule
+## 7. Ollama provider
 
-LM Studio is the MVP provider.
+Ollama is the primary LLM provider.
+
+Primary model: `mistral` (14B Q4_K_M variant)
+Fallback model: `qwen` 14B (if primary unavailable)
 
 Allowed:
 
-- LM Studio local OpenAI-compatible API;
-- configurable base URL;
-- configurable model;
+- Ollama local OpenAI-compatible API;
+- configurable base URL and model name;
 - healthcheck;
 - chat completion;
+- streaming responses;
 - safe provider errors;
-- tests using mocks.
+- tests using mocks or fake clients.
 
 Default values:
 
-- VIVI_LMSTUDIO_BASE_URL=<http://localhost:1234/v1>
-- VIVI_LLM_TIMEOUT_SECONDS=60
+- `VIVI_OLLAMA_BASE_URL=http://localhost:11434/v1`
+- `VIVI_LLM_MODEL=mistral`
+- `VIVI_LLM_TIMEOUT_SECONDS=60`
 
 Do not add:
 
 - ProviderRegistry;
 - multi-provider fallback;
-- Ollama implementation;
-- OpenAI implementation;
-- Mammouth implementation;
-- benchmark routing;
+- external provider implementations (OpenAI, Mammouth);
 - automatic model selection.
 
-The code may be kept compatible with future providers, but must not implement them now.
+The code may be kept compatible with future providers via interface abstraction, but must not implement them now.
 
 ---
 
-## 8. Backend MVP architecture
+## 8. Backend architecture
 
-The backend should stay simple.
+Stack: Python 3.12+ / FastAPI / monorepo monoprocess.
 
-Expected modules may include:
+Tooling: `uv` + `ruff` + `pyright` + `pytest`.
 
-- app/api/
-- app/llm/
-- app/knowledge/
-- app/sessions/
-- app/runtime/
-- tests/
-- scripts/
-- data/runtime/
+Test coverage target: ≥70% on business modules (`meals/`, `llm/`, `knowledge/`).
 
-Core endpoints for the MVP:
+Expected structure:
 
-- GET /health
-- GET /runtime/info
-- POST /chat
-- GET /sessions
-- GET /sessions/{session_id}
-- DELETE /sessions/{session_id}
-- GET /knowledge/search
+```text
+backend/
+  app/
+    api/
+    llm/
+    meals/          # Repas domain module
+    knowledge/
+    sessions/
+    runtime/
+    core/
+      prompts/      # versioned prompts (Markdown)
+      tools/        # tool dispatcher and definitions
+  tests/
+  scripts/
+data/
+  runtime/
+  db/
+```
 
-Implement them progressively by FEAT.
+Persistence:
 
-Do not add an orchestrator layer until the basic chat + RAG MVP is validated.
+- SQLite + SQLModel + Alembic at MVP;
+- SQLCipher post-MVP;
+- restic encrypted backups from MVP.
+
+Core MVP endpoints:
+
+- `GET /health`
+- `GET /runtime/info`
+- `POST /chat`
+- `GET /sessions`
+- `GET /sessions/{session_id}`
+- `DELETE /sessions/{session_id}`
+- `GET /meals/suggest`
+- `POST /meals/plan`
+- `GET /shopping/list`
+
+Implement progressively by FEAT. Do not add an orchestrator layer until basic chat + Repas MVP is validated.
 
 ---
 
-## 9. Obsidian vault policy
+## 9. Frontend architecture
 
-The Obsidian vault is located at:
+Client: SvelteKit PWA + Tailwind CSS.
 
-- knowledge_vault/
+Deployment topology:
+
+- primary: Windows desktop PC (on H24);
+- secondary (2–3 months): Linux mini-PC;
+- mobile access: Tailscale + iPhone (PWA in browser).
+
+Authorized:
+
+- SvelteKit + Tailwind;
+- Web Push API (push notifications via FastAPI backend);
+- Tailscale for mobile network access.
+
+Not authorized:
+
+- native iOS app;
+- native Android app;
+- Tauri desktop wrapper;
+- Swift or Kotlin native code.
+
+Auth at MVP: permissive — Tailscale acts as network-level auth. FastAPI middleware pre-equipped for Bearer token post-MVP, inactive at MVP.
+
+---
+
+## 10. Tool calling policy
+
+Format: OpenAI function calling standard (compatible with Ollama).
+
+Rules:
+
+- central dispatcher in `backend/app/core/tools/`;
+- maximum 5 tool calls per conversation turn;
+- read-only tools: execute without user confirmation;
+- write or destructive tools: require explicit user confirmation before execution;
+- all tool definitions versioned in Git.
+
+---
+
+## 11. Prompts policy
+
+All prompts versioned in Git. Never hard-code prompts in Python source.
+
+Location: `backend/app/core/prompts/`
+Format: Markdown files.
+
+Three levels:
+
+1. **System** — base personality, global constraints;
+2. **Contextual** — domain-specific framing (Repas, etc.);
+3. **Tools** — tool-use instructions.
+
+---
+
+## 12. Obsidian vault policy
+
+The Obsidian vault is located at: `knowledge_vault/`
 
 Central rule:
 
-> AI-generated writes go only to generated/, runtime/, or inbox/, never directly into source notes.
+> AI-generated writes go only to `generated/`, `runtime/`, or `inbox/`, never directly into source notes.
 
-Recommended zones:
+Vault zones:
 
-- 00_product/ : product framing
-- 01_user_docs/ : user documentation
-- 02_architecture/ : validated architecture
-- 03_decisions/ : project decisions
-- 04_backlog/ : backlog and ideas
-- 05_runs/ : run logs if explicitly requested
-- 90_generated/ : generated content
-- 91_runtime/ : runtime data, indexes, logs
-- 92_inbox/ : proposals to validate
-- 99_archive/ : archives
+- `00_product/` — product framing
+- `01_user_docs/` — user documentation
+- `02_architecture/` — validated architecture
+- `03_decisions/` — project decisions
+- `04_backlog/` — backlog and ideas
+- `05_runs/` — run logs if explicitly requested
+- `90_generated/` — generated content
+- `91_runtime/` — runtime data, indexes, logs
+- `92_inbox/` — proposals to validate
+- `99_archive/` — archives
 
-Do not automatically modify:
+Do not automatically modify: product framing notes, validated architecture, decision notes, human documentation, README.md, source notes.
 
-- product framing notes;
-- validated architecture;
-- decision notes;
-- human documentation;
-- README.md;
-- source notes.
-
-For normal Codex implementation tasks, write the execution report to tmp/.
-
-Only update Obsidian project memory when explicitly requested or when the task is specifically documentary.
+For normal implementation tasks, write execution reports to `tmp/`.
 
 ---
 
-## 10. Run history policy
+## 13. Run history policy
 
 The canonical run history lives in `knowledge_vault/05_runs/`.
 
-After each significant FEAT or improvement, create a note:
+After each significant FEAT, create a note:
 
 - filename: `YYYY-MM-DD_FEAT-short-name.md`
 - frontmatter: `doc_type: run`, `llm_index: false`, `llm_priority: low`
-- content: résumé, fichiers modifiés, validation (tests), résultat, note méthode si pertinent
+- content: summary, modified files, test validation, result, method note if relevant.
 
-`llm_index: false` is the default for run logs — execution detail must not pollute RAG responses. Set `llm_index: true` only if the run contains a decision worth surfacing in retrieval.
-
-`tmp/` is scratch space only — transient, never committed, overwritten freely. It is not the historical record.
+`tmp/` is scratch space only — transient, never committed, overwritten freely.
 
 ---
 
-## 11. Development workflow
-
-The workflow must remain controlled.
+## 14. Development workflow
 
 Rules:
 
@@ -281,11 +325,11 @@ If a task becomes too large, stop and propose a split.
 
 ---
 
-## 12. Git workflow
+## 15. Git workflow
 
-The user currently controls commits between tasks unless explicitly stated otherwise.
+The user controls commits between tasks unless explicitly stated otherwise.
 
-Default behavior for Codex:
+Default behavior for agents:
 
 - do not commit automatically;
 - do not push automatically;
@@ -293,24 +337,15 @@ Default behavior for Codex:
 - do not create PRs automatically;
 - do not merge automatically.
 
-Allowed only when explicitly requested:
-
-- commit;
-- push;
-- branch creation;
-- PR creation;
-- merge.
+Allowed only when explicitly requested: commit, push, branch creation, PR creation, merge.
 
 Before any commit, if requested:
 
-- inspect git status;
-- inspect modified files;
-- never use git add . blindly;
+- inspect git status and modified files;
+- never use `git add .` blindly;
 - stage only relevant files;
 - run relevant tests;
-- never commit secrets;
-- never commit .env;
-- never commit tmp/ unless explicitly requested.
+- never commit secrets, `.env`, or `tmp/` unless explicitly requested.
 
 Normal reports must state:
 
@@ -318,134 +353,115 @@ Normal reports must state:
 - push: not pushed
 - reason if not pushed: not requested
 
-This replaces the old VIVI_IA main-first auto-push policy.
-
 ---
 
-## 13. Branch and PR policy
-
-Branches and PRs are allowed for parallel or risky work, but not automatic.
+## 16. Branch and PR policy
 
 Use branches only if:
 
 - the user explicitly asks;
-- the task is parallel;
-- the task is experimental;
-- the task is risky;
+- the task is parallel, experimental, or risky;
 - the task is a large refactor;
 - conflict isolation is useful.
 
-Suggested branch names:
-
-- feat/short-name
-- fix/short-name
-- refactor/short-name
-- experiment/short-name
+Suggested names: `feat/`, `fix/`, `refactor/`, `experiment/`.
 
 Do not create branches without explicit approval.
 
 ---
 
-## 14. Testing policy
+## 17. Testing policy
 
 Run relevant tests for every code change.
 
-For backend changes, prefer:
+For backend changes: `pytest -q`
 
-- pytest -q
-
-For focused changes, a smaller subset is allowed first, but the final report must say exactly what was run.
-
-Never claim tests passed if they were not run.
+Coverage target: ≥70% on business modules.
 
 Use one of these labels:
 
-- passed
-- failed
-- not run: reason
+- `passed`
+- `failed`
+- `not run: reason`
 
-Tests must not require a real LM Studio instance unless the task is explicitly a manual smoke test.
+Never claim tests passed if they were not run.
 
-Automated tests should use mocks, fake clients, or dependency injection.
+Automated tests must use mocks or dependency injection — no real Ollama instance required.
 
 ---
 
-## 15. Security policy
+## 18. Security policy
 
-VIVI is local-first, but must not be careless.
+VIVI operates under zero-knowledge and privacy-by-default principles.
+
+Principles: zero-knowledge by design, privacy by default, data minimization, state-of-the-art crypto, auditable.
 
 Rules:
 
 - no external provider by default;
-- no external fallback by default;
 - no secrets in logs;
 - no API keys in responses;
 - no stack traces in API responses;
-- safe errors only;
-- simple local auth must be supported;
-- if VIVI_API_KEY is set, protected endpoints must require auth;
-- if VIVI_API_KEY is empty, report auth_enabled=false in runtime info.
+- restic encrypted backups from MVP;
+- Tailscale for network-level auth at MVP.
 
-Never expose:
+Primary threat model:
 
-- VIVI_API_KEY;
-- .env values;
-- tokens;
-- credentials;
-- local private paths beyond what is useful and safe.
+- T1: opportunistic attacker;
+- T6: user themselves (accidental data loss or exposure);
+- T7: LLM hallucination and prompt injection.
+
+Accepted residual risks: physical theft (no BitLocker), disk end-of-life, warranty service access, secondary Windows user account.
+
+If `VIVI_API_KEY` is set, protected endpoints must require auth.
+If `VIVI_API_KEY` is empty, report `auth_enabled=false` in runtime info.
+
+Never expose: API keys, `.env` values, tokens, credentials, local private paths.
 
 ---
 
-## 16. Error policy
+## 19. Error policy
 
 API errors should be safe and understandable.
 
 Preferred shape:
 
-- error.code
-- error.message
-- error.recovery_hint
-- request_id if available
-- status_code
+- `error.code`
+- `error.message`
+- `error.recovery_hint`
+- `request_id` if available
+- `status_code`
 
-Do not return:
-
-- raw stack traces;
-- secrets;
-- oversized raw provider payloads;
-- confusing internal exceptions.
+Do not return: raw stack traces, secrets, oversized raw provider payloads.
 
 ---
 
-## 17. RAG policy
+## 20. RAG policy
 
 The MVP RAG is lexical and explainable.
 
-Allowed MVP behavior:
+Allowed:
 
 - Markdown loading;
 - frontmatter parsing;
 - title/path/tag/heading/content search;
 - simple chunking;
 - top-k retrieval;
-- visible sources;
-- /knowledge/search endpoint.
+- visible sources.
 
 Not MVP:
 
-- embeddings requirement;
+- embeddings;
 - vector database;
 - reranker;
-- complex hybrid retrieval;
+- hybrid retrieval;
 - autonomous vault rewriting.
 
-Every document-based answer must eventually expose sources.
-
-If no source is found, VIVI must say so clearly.
+Every document-based answer must expose sources. If no source found, VIVI must say so.
 
 ---
 
-## 18. Session memory policy
+## 21. Session memory policy
 
 MVP memory is simple.
 
@@ -458,7 +474,7 @@ Allowed:
 - inspectable session store;
 - deletion endpoint.
 
-Not allowed in MVP:
+Not allowed at MVP:
 
 - agent memory;
 - autonomous long-term memory;
@@ -468,7 +484,131 @@ Not allowed in MVP:
 
 ---
 
-## 19. Legacy VIVI_IA audit policy
+## 22. Documentation policy
+
+README.md should contain: project purpose, installation, launch, tests, MVP status.
+
+The vault contains: product framing, architecture, decisions, backlog, runs if requested.
+
+Avoid duplication. Do not create legacy snapshot files (PROJECT_STATE.md, CHANGELOG_AI.md, NEXT_STEPS.md).
+
+---
+
+## 23. Markdown generation policy
+
+When asked to generate Markdown:
+
+- generate the full content immediately;
+- do not ask for confirmation;
+- make it directly usable;
+- keep structure clean.
+
+If meant for a file, provide it in one complete Markdown block. Do not split unless explicitly requested.
+
+---
+
+## 24. Context management policy
+
+Recommend starting a new conversation when:
+
+- more than 6–8 FEATs have been chained;
+- answers become less precise;
+- project state becomes hard to summarize.
+
+Standard alert: *"The context is becoming large. Recommendation: start a new conversation with a summarized prompt."*
+
+Provide: compact project-state summary + next FEAT ready to execute. Do not replay full history.
+
+---
+
+## 25. Output minimization policy
+
+After normal tasks, use:
+
+```markdown
+## Summary
+- Files changed: X
+- Tasks impacted: FEAT-XX
+
+## Changes
+- file: change
+
+## State
+- project_state: updated | no
+- backlog: updated | no
+- run_log: updated | no
+- decision: updated | no
+
+## Tests
+- command: passed | failed | not run
+
+## Git
+- commit: hash and message | not created
+- push: pushed | not pushed
+- reason if not pushed: short reason
+
+## Next
+- FEAT-XX
+```
+
+Do not include long implementation narratives unless requested.
+
+---
+
+## 26. Critical prohibitions
+
+Never:
+
+- treat VIVI as VIVI_IA;
+- import the legacy repo wholesale;
+- copy legacy code without explicit instruction;
+- implement multi-LLM agents at MVP;
+- add a complex orchestrator at MVP;
+- add runtime skills at MVP;
+- add provider registry at MVP;
+- add external provider fallback at MVP;
+- add vector DB at MVP;
+- modify Obsidian source notes automatically;
+- auto-commit;
+- auto-push;
+- create PRs automatically;
+- commit `tmp/` unless explicitly requested;
+- claim tests passed if not run;
+- expose secrets;
+- hide a dirty working tree;
+- rewrite Git history;
+- perform unrelated refactors;
+- put business logic in the LLM core;
+- hard-code prompts in Python source.
+
+---
+
+## 27. Evolutionary trajectory
+
+For context only — not for implementation now.
+
+- **Phase 2 (post-MVP)**: progressive addition of domains (Memory, Reminders, Agenda, Finance). No architecture change.
+- **Phase 3 (if dev capacity)**: multi-model routing — one router core + several specialized LLMs. NOT dialogue between LLMs.
+- **Phase 4 (hypothetical)**: true multi-agents only for legitimate long autonomous task use cases.
+
+---
+
+## 28. Final principle
+
+VIVI MVP must stay simple:
+
+- I launch VIVI;
+- I open the interface;
+- I ask what we're eating tonight;
+- VIVI suggests a meal from the recipe catalogue;
+- VIVI updates the shopping list;
+- VIVI stays local-first.
+
+Everything else comes later.
+
+---
+
+## Appendix A — Legacy VIVI_IA audit policy
 
 When analyzing the legacy VIVI_IA repo:
 
@@ -478,181 +618,6 @@ When analyzing the legacy VIVI_IA repo:
 - produce an audit report only;
 - classify items as KEEP_MVP, KEEP_POST_MVP, ARCHIVE, DELETE, REWRITE, or UNKNOWN.
 
-The legacy may inspire:
+The legacy may inspire: API patterns, safe errors, session memory, auth, runtime status, tests, markdown chunking.
 
-- API patterns;
-- safe errors;
-- session memory;
-- auth;
-- runtime status;
-- tests;
-- markdown chunking.
-
-The legacy must not reintroduce:
-
-- multi-agent orchestration;
-- runtime skills;
-- provider registry;
-- Open WebUI-first design;
-- vector complexity;
-- old Obsidian structure;
-- old project-state conventions.
-
----
-
-## 20. Documentation policy
-
-Keep documentation short and useful.
-
-README.md should contain:
-
-- project purpose;
-- basic installation;
-- basic launch;
-- basic tests;
-- current MVP status.
-
-The vault contains:
-
-- product framing;
-- architecture;
-- decisions;
-- backlog;
-- runs if requested;
-- generated/inbox/archive content.
-
-Avoid duplication.
-
-Do not update root legacy snapshots such as:
-
-- PROJECT_STATE.md
-- CHANGELOG_AI.md
-- NEXT_STEPS.md
-
-These files should not exist in the new repo unless explicitly introduced for a clear reason.
-
----
-
-## 21. Markdown generation policy
-
-When asked to generate Markdown content:
-
-- generate the full content immediately;
-- do not ask for confirmation;
-- make it directly usable;
-- avoid unnecessary escaping;
-- avoid placeholders unless unavoidable;
-- keep structure clean.
-
-If the Markdown is meant to be copied into a file, provide it in one complete Markdown block.
-
-Do not split a file into fragments unless explicitly requested.
-
----
-
-## 22. Context management policy
-
-Monitor context size and project drift.
-
-Recommend starting a new conversation when:
-
-- more than 6 to 8 FEATs have been chained;
-- the scope exceeds a coherent functional block;
-- repeated state reminders are needed;
-- answers become less precise;
-- project state becomes hard to summarize.
-
-Standard alert:
-
-The context is becoming large. Recommendation: start a new conversation with a summarized prompt to reset the context.
-
-Then provide:
-
-- a compact project-state summary;
-- the next FEAT ready to execute.
-
-Do not replay full history.
-
-Keep only critical invariants.
-
----
-
-## 23. Output minimization policy
-
-Default final output should be concise.
-
-After normal Codex tasks, use:
-
-## Summary
-
-- Files changed: X
-- Tasks impacted: FEAT-XX
-
-## Changes
-
-- file: change
-
-## State
-
-- project_state: updated | no
-- backlog: updated | no
-- run_log: updated | no
-- decision: updated | no
-
-## Tests
-
-- command: passed | failed | not run
-
-## Git
-
-- commit: hash and message | not created
-- push: pushed | not pushed
-- reason if not pushed: short reason
-
-## Next
-
-- FEAT-XX
-
-Do not include long implementation narratives unless requested.
-
----
-
-## 24. Critical prohibitions
-
-Never:
-
-- treat VIVI as VIVI_IA;
-- import the legacy repo wholesale;
-- copy legacy code without explicit instruction;
-- add agents during the MVP;
-- add a complex orchestrator during the MVP;
-- add runtime skills during the MVP;
-- add provider registry during the MVP;
-- add external provider fallback during the MVP;
-- add vector DB during the MVP;
-- modify Obsidian source notes automatically;
-- auto-commit;
-- auto-push;
-- create PRs automatically;
-- commit tmp/ unless explicitly requested;
-- claim tests passed if not run;
-- expose secrets;
-- hide a dirty working tree;
-- rewrite Git history;
-- perform unrelated refactors.
-
----
-
-## 25. Final principle
-
-VIVI MVP must stay simple:
-
-- I launch VIVI;
-- I open the interface;
-- I talk to a local LM Studio model;
-- VIVI can query Obsidian;
-- VIVI shows its sources;
-- VIVI answers clearly;
-- VIVI stays local-first.
-
-Everything else comes later.
+The legacy must not reintroduce: multi-agent orchestration, runtime skills, provider registry, Open WebUI-first design, vector complexity, old Obsidian structure.
