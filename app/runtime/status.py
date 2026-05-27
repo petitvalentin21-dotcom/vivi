@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from app import __version__
 from app.config import Settings
 from app.knowledge.markdown_loader import count_markdown_notes
-from app.llm.lmstudio import LMStudioClient
+from app.llm.ollama import OllamaClient
 
 
 @dataclass(frozen=True)
@@ -22,10 +22,9 @@ class RuntimeInfo:
 
 
 def build_runtime_info(settings: Settings) -> RuntimeInfo:
-    provider_client = LMStudioClient(
-        base_url=settings.lmstudio_base_url,
-        model=settings.lmstudio_model,
-        api_key=settings.lmstudio_api_key,
+    provider_client = OllamaClient(
+        base_url=settings.ollama_base_url,
+        model=settings.llm_model,
         timeout_seconds=settings.llm_timeout_seconds,
     )
     provider = provider_client.get_provider_status().__dict__

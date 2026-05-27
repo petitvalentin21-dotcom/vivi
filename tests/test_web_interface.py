@@ -234,23 +234,22 @@ def test_web_js_clear_api_key_is_explicit_action() -> None:
     assert 'document.getElementById("clear-api-key-btn").addEventListener("click", clearApiKey);' in js.text
 
 
-def test_web_js_maps_lmstudio_model_missing_error_to_readable_message() -> None:
+def test_web_js_maps_ollama_model_missing_error_to_readable_message() -> None:
     client = TestClient(create_app(Settings()))
     js = client.get("/web/app.js")
     assert "function toReadableBackendError(payload, status)" in js.text
-    assert "lmstudio_model_missing" in js.text
-    assert "VIVI_LMSTUDIO_MODEL" in js.text
-    assert "Modèle LM Studio non configuré." in js.text
-    assert "Configure VIVI_LMSTUDIO_MODEL avant d'envoyer une requête." in js.text
+    assert "ollama_model_missing" in js.text
+    assert "VIVI_LLM_MODEL" in js.text
+    assert "Modèle Ollama non configuré." in js.text
+    assert "Configure VIVI_LLM_MODEL avant d'envoyer une requête." in js.text
 
 
-def test_web_js_maps_lmstudio_http_401_error_to_readable_message() -> None:
+def test_web_js_maps_ollama_http_401_error_to_readable_message() -> None:
     client = TestClient(create_app(Settings()))
     js = client.get("/web/app.js")
-    assert "lmstudio_http_error" in js.text
-    assert "LM Studio returned HTTP 401" in js.text
-    assert "LM Studio refuse la requête." in js.text
-    assert "VIVI_LMSTUDIO_API_KEY" in js.text
+    assert "ollama_http_error" in js.text
+    assert "Ollama returned HTTP 401" in js.text
+    assert "Ollama refuse la requête." in js.text
 
 
 def test_web_js_has_uniform_error_labels_for_mvp() -> None:
@@ -258,9 +257,9 @@ def test_web_js_has_uniform_error_labels_for_mvp() -> None:
     js = client.get("/web/app.js")
     assert "Authentification locale requise." in js.text
     assert "Clé API locale invalide." in js.text
-    assert "LM Studio est indisponible." in js.text
-    assert "Modèle LM Studio non configuré." in js.text
-    assert "LM Studio refuse la requête." in js.text
+    assert "Ollama est indisponible." in js.text
+    assert "Modèle Ollama non configuré." in js.text
+    assert "Ollama refuse la requête." in js.text
     assert "Impossible de joindre VIVI." in js.text
     assert "Erreur serveur VIVI." in js.text
 

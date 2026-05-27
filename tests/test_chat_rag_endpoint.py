@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.api.server import create_app
 from app.config import Settings
-from app.llm.lmstudio import LMStudioCompletionResult, LMStudioError
+from app.llm.base import LLMCompletionResult, LLMError
 
 
 def _write(path: Path, content: str) -> None:
@@ -18,7 +18,7 @@ def _write(path: Path, content: str) -> None:
 def _settings(tmp_path: Path, api_key: str = "") -> Settings:
     return Settings(
         api_key=api_key,
-        lmstudio_model="local-model",
+        llm_model="local-model",
         rag_top_k=3,
         session_store_path=str(tmp_path / "runtime" / "sessions.json"),
         knowledge_vault_path=str(tmp_path / "knowledge_vault"),
@@ -35,9 +35,9 @@ def test_chat_mode_chat_without_rag_keeps_sources_empty(monkeypatch, tmp_path: P
     _seed_vault(tmp_path / "knowledge_vault")
 
     def fake_chat_completion(self, messages, model=None, temperature=None, max_tokens=None):
-        return LMStudioCompletionResult(content="ok", model="local-model", provider="lmstudio"), None
+        return LLMCompletionResult(content="ok", model="local-model", provider="ollama"), None
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
     client = TestClient(create_app(_settings(tmp_path)))
 
     response = client.post("/chat", json={"message": "Bonjour"})
@@ -54,9 +54,9 @@ def test_chat_mode_document_uses_rag_and_returns_sources(monkeypatch, tmp_path: 
 
     def fake_chat_completion(self, messages, model=None, temperature=None, max_tokens=None):
         captured["messages"] = messages
-        return LMStudioCompletionResult(content="doc", model="local-model", provider="lmstudio"), None
+        return LLMCompletionResult(content="doc", model="local-model", provider="ollama"), None
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
     client = TestClient(create_app(_settings(tmp_path)))
 
     response = client.post("/chat", json={"message": "sources visibles", "mode": "document"})
@@ -84,9 +84,9 @@ def test_chat_use_rag_true_with_chat_mode_activates_rag(monkeypatch, tmp_path: P
     _seed_vault(tmp_path / "knowledge_vault")
 
     def fake_chat_completion(self, messages, model=None, temperature=None, max_tokens=None):
-        return LMStudioCompletionResult(content="rag", model="local-model", provider="lmstudio"), None
+        return LLMCompletionResult(content="rag", model="local-model", provider="ollama"), None
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
     client = TestClient(create_app(_settings(tmp_path)))
 
     response = client.post("/chat", json={"message": "rag", "mode": "chat", "use_rag": True})
@@ -100,9 +100,9 @@ def test_chat_max_sources_limits_results(monkeypatch, tmp_path: Path) -> None:
     _seed_vault(tmp_path / "knowledge_vault")
 
     def fake_chat_completion(self, messages, model=None, temperature=None, max_tokens=None):
-        return LMStudioCompletionResult(content="limited", model="local-model", provider="lmstudio"), None
+        return LLMCompletionResult(content="limited", model="local-model", provider="ollama"), None
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
     client = TestClient(create_app(_settings(tmp_path)))
 
     response = client.post("/chat", json={"message": "rag", "mode": "document", "max_sources": 1})
@@ -115,9 +115,9 @@ def test_chat_no_relevant_source_keeps_success_with_empty_sources(monkeypatch, t
     _seed_vault(tmp_path / "knowledge_vault")
 
     def fake_chat_completion(self, messages, model=None, temperature=None, max_tokens=None):
-        return LMStudioCompletionResult(content="aucune source", model="local-model", provider="lmstudio"), None
+        return LLMCompletionResult(content="aucune source", model="local-model", provider="ollama"), None
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
     client = TestClient(create_app(_settings(tmp_path)))
 
     response = client.post("/chat", json={"message": "zzzzzzzzzz", "mode": "document"})
@@ -130,11 +130,11 @@ def test_chat_no_relevant_source_keeps_success_with_empty_sources(monkeypatch, t
 
 def test_chat_document_vault_absent_returns_safe_error(monkeypatch, tmp_path: Path) -> None:
     def fake_chat_completion(self, messages, model=None, temperature=None, max_tokens=None):
-        return LMStudioCompletionResult(content="x", model="local-model", provider="lmstudio"), None
+        return LLMCompletionResult(content="x", model="local-model", provider="ollama"), None
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
     settings = Settings(
-        lmstudio_model="local-model",
+        llm_model="local-model",
         knowledge_vault_path=str(tmp_path / "missing_vault"),
         session_store_path=str(tmp_path / "runtime" / "sessions.json"),
     )
@@ -145,13 +145,13 @@ def test_chat_document_vault_absent_returns_safe_error(monkeypatch, tmp_path: Pa
     assert response.json()["error"]["code"] == "vault_not_found"
 
 
-def test_chat_document_session_behaviors_and_lmstudio_error(monkeypatch, tmp_path: Path) -> None:
+def test_chat_document_session_behaviors_and_ollama_error(monkeypatch, tmp_path: Path) -> None:
     _seed_vault(tmp_path / "knowledge_vault")
 
     def fake_ok(self, messages, model=None, temperature=None, max_tokens=None):
-        return LMStudioCompletionResult(content="ok", model="local-model", provider="lmstudio"), None
+        return LLMCompletionResult(content="ok", model="local-model", provider="ollama"), None
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_ok)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_ok)
     store_path = tmp_path / "runtime" / "sessions.json"
     client = TestClient(create_app(_settings(tmp_path)))
 
@@ -170,30 +170,30 @@ def test_chat_document_session_behaviors_and_lmstudio_error(monkeypatch, tmp_pat
     payload = json.loads(store_path.read_text(encoding="utf-8"))
     assert session_id in payload["sessions"]
 
-    err = LMStudioError(
-        code="lmstudio_unavailable",
-        message="LM Studio is unavailable.",
-        recovery_hint="Start LM Studio.",
+    err = LLMError(
+        code="ollama_unavailable",
+        message="Ollama is unavailable.",
+        recovery_hint="Start Ollama.",
         status_code=503,
     )
 
     def fake_err(self, messages, model=None, temperature=None, max_tokens=None):
         return None, err
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_err)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_err)
     failed = client.post("/chat", json={"message": "doc", "mode": "document"})
     assert failed.status_code == 503
-    assert failed.json()["error"]["code"] == "lmstudio_unavailable"
+    assert failed.json()["error"]["code"] == "ollama_unavailable"
 
 
-def test_chat_document_no_secret_leak_and_no_real_lmstudio_needed(monkeypatch, tmp_path: Path) -> None:
+def test_chat_document_no_secret_leak(monkeypatch, tmp_path: Path) -> None:
     _seed_vault(tmp_path / "knowledge_vault")
     secret = "super-secret-value"
 
     def fake_chat_completion(self, messages, model=None, temperature=None, max_tokens=None):
-        return LMStudioCompletionResult(content="ok", model="local-model", provider="lmstudio"), None
+        return LLMCompletionResult(content="ok", model="local-model", provider="ollama"), None
 
-    monkeypatch.setattr("app.api.server.LMStudioClient.chat_completion", fake_chat_completion)
+    monkeypatch.setattr("app.api.server.OllamaClient.chat_completion", fake_chat_completion)
     client = TestClient(create_app(_settings(tmp_path, api_key=secret)))
 
     response = client.post(
