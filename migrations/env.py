@@ -12,8 +12,9 @@ _project_root = Path(__file__).resolve().parents[1]
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
-# Import models to register them on SQLModel.metadata before Alembic reads it.
+# Import ALL table models to register them on SQLModel.metadata before Alembic reads it.
 from app.db.models import AppSettings  # noqa: F401, E402
+from app.meals.recettes.models import Recette  # noqa: F401, E402
 from sqlmodel import SQLModel  # noqa: E402
 
 # Alembic Config object — gives access to values within alembic.ini.

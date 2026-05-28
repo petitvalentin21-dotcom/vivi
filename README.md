@@ -20,6 +20,12 @@ FEAT-01 à FEAT-15 stabilisent le socle MVP local :
 - auth locale par clé API si activée ;
 - smoke backend local.
 
+FEAT-17-18 : persistance structurée :
+
+- SQLite + SQLModel + Alembic ;
+- `GET /db/health` ;
+- `POST/GET/PATCH/DELETE /recettes` — CRUD recettes avec soft delete.
+
 ## Documentation de lancement
 
 Procédure complète de lancement, configuration, validation et diagnostic :
