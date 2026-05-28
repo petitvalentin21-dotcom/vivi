@@ -7,11 +7,34 @@
 
 ## Identité
 
-- **Repo** : local — `f:/vivi`
-- **Prod** : `http://localhost:8000` (local-first, pas de déploiement cloud)
-- **Owner** : solo (toi + agents IA assistants)
-- **Démarré** : 2026
-- **Statut** : `actif`
+VIVI est un assistant IA local, personnel, local-first, orienté gestion des repas. Il tourne via Ollama (remplace LM Studio depuis FEAT-16) et consulte un vault Obsidian via RAG lexical. Il embarque une base SQLite (depuis FEAT-17) pour les données structurées : recettes, stock, courses, préférences.
+
+VIVI_IA = dépôt legacy, archive, ne pas y toucher.
+
+---
+
+## État MVP actuel (2026-05-28)
+
+Tout ceci est construit et fonctionnel — ne pas ré-implémenter :
+
+### Socle v1 (hérité)
+
+- Chat `POST /chat` avec session mémoire, RAG toujours actif
+- Retrieval lexical Obsidian (`/knowledge/search`) avec `llm_priority` ranking
+- Confidence label + badge "faible" dans l'UI
+- Inbox Obsidian `POST /obsidian/inbox`
+- Auth locale : bypass 127.0.0.1/::1, clé requise en LAN
+- Web interface : chat, sources collapsibles, mémoire VIVI, help, runtime
+- Markdown rendu : headings, listes, gras, code, tableaux
+
+### Extension Repas (FEAT-16 à FEAT-19)
+
+- Ollama comme provider LLM (remplace LM Studio)
+- SQLite + Alembic (`app/db/`, migrations versionnées)
+- Module Recettes : `app/meals/recettes/` — CRUD complet, 6 endpoints
+- Module Stock : `app/meals/stock/` — Batch + IngredientBase, 13 endpoints
+
+**329 tests passent** (`pytest tests/ -q`)
 
 ---
 
@@ -42,17 +65,16 @@ Ne pas migrer vers le format conventionnel sans décision explicite et mise à j
 
 ### Run logs
 
-Après chaque FEAT significatif, créer `knowledge_vault/05_runs/YYYY-MM-DD_FEAT-slug.md` et le **stager avant le commit**. Frontmatter minimal :
+Claude Code crée le run log automatiquement après chaque FEAT, sans attendre qu'on le demande.
+Chemin : `knowledge_vault/05_runs/YYYY-MM-DD_FEAT-NN-slug.md`
 
-```yaml
----
-title: Run Log — FEAT-XXX
-doc_type: run
-llm_index: false
-llm_priority: low
-updated: YYYY-MM-DD
----
-```
+Claude Code doit :
+
+- Créer le fichier run log avec le frontmatter standard et le contenu (résumé, fichiers créés/modifiés, validation, résultat)
+- Le stager : `git add knowledge_vault/05_runs/...`
+- Signaler : "Run log créé et stagé : `knowledge_vault/05_runs/...`"
+
+Le hook commit-msg bloque tout commit `FEAT*` sans run log stagé.
 
 ### Hook commit-msg
 
@@ -100,18 +122,20 @@ tags: [vivi, mvp]
 
 ```
 app/
-  api/        # FastAPI — server.py, auth.py, schemas.py, errors.py
-  llm/        # LMStudioClient (chat + streaming)
+  api/        # FastAPI — server.py, auth.py, schemas.py, errors.py, recettes.py, stock.py
+  llm/        # OllamaClient (ex-LMStudioClient)
   knowledge/  # markdown_loader, chunker, lexical_retriever, obsidian_inbox, sources
-  sessions/   # SessionStore (JSON file-based)
+  meals/
+    recettes/ # models, repository, service, schemas
+    stock/    # models, repository, service, schemas
+  db/         # engine, session, base
+  sessions/   # SessionStore
   runtime/    # build_runtime_info
-  web/        # index.html, app.js, style.css (vanilla, pas de build)
-  config.py   # Settings (frozen dataclass) + load_settings()
+  web/        # index.html, app.js, style.css
+  config.py
 tests/
 knowledge_vault/
-  00_product/ … 05_runs/ … 10_nutrition/ … 90_generated/ … 92_inbox/
-data/runtime/   # sessions.json, générés à runtime
-hooks/          # commit-msg (versionné)
+migrations/
 ```
 
 ### Zones vault et indexation RAG
@@ -132,9 +156,9 @@ hooks/          # commit-msg (versionné)
 
 **Règle vault** : l'IA n'écrit que dans `90_generated/`, `91_runtime/`, `92_inbox/`. Jamais dans les notes sources.
 
-### Endpoints existants
+### Endpoints actifs
 
-`GET /health` · `GET /runtime/info` · `POST /chat` · `POST /chat/stream` · `GET /knowledge/search` · `POST /obsidian/inbox` · `POST /conversation/export`
+`GET /health` · `GET /runtime/info` · `POST /chat` · `GET /knowledge/search` · `POST /obsidian/inbox` · `POST /conversation/export` · `/recettes` (6 endpoints) · `/stock` (13 endpoints)
 
 ---
 
