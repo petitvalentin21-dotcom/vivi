@@ -21,7 +21,7 @@ def test_run_migrations_upgrade_head(tmp_path) -> None:
 
     version = con.execute("SELECT version_num FROM alembic_version").fetchone()
     assert version is not None
-    assert version[0] == "0002"  # current head — update when new migrations are added
+    assert version[0] == "0003"  # current head — update when new migrations are added
     con.close()
 
 

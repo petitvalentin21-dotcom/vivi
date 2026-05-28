@@ -26,6 +26,14 @@ FEAT-17-18 : persistance structurée :
 - `GET /db/health` ;
 - `POST/GET/PATCH/DELETE /recettes` — CRUD recettes avec soft delete.
 
+FEAT-19 : module Stock :
+
+- `POST/GET/PATCH/DELETE /stock/batchs` — gestion des plats cuisinés en stock ;
+- `POST /stock/batchs/{id}/consommer` — consommer N portions (soft-delete automatique à 0) ;
+- `POST/GET/PATCH/DELETE /stock/ingredients` — ingrédients permanents frigo/placard ;
+- `GET /stock/ingredients/alertes` — ingrédients sous seuil d'alerte ;
+- `GET /stock/resume` — vue synthétique batchs actifs + alertes.
+
 ## Documentation de lancement
 
 Procédure complète de lancement, configuration, validation et diagnostic :
