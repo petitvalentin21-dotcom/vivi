@@ -17,6 +17,7 @@ from app.api.schemas import (
     ChatResponse,
     ConversationExportRequest,
     ConversationExportResponse,
+    DbHealthResponse,
     HealthResponse,
     KnowledgeSearchResponse,
     ObsidianInboxCreateRequest,
@@ -24,6 +25,8 @@ from app.api.schemas import (
     RuntimeInfoResponse,
 )
 from app.config import Settings, ensure_runtime_dirs, load_settings
+from app.db.connection import create_db_engine, get_session, run_migrations
+from app.db.models import AppSettings
 from app.knowledge import ObsidianInboxError, create_inbox_note, load_markdown_notes, retrieve_lexical, split_into_chunks
 from app.knowledge.sources import Source
 from app.llm import OllamaClient
@@ -76,6 +79,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         print(f"FATAL: {exc}", file=sys.stderr)
         sys.exit(1)
 
+    # DB init — skipped when db_path is empty (tests that don't need a DB)
+    db_engine = None
+    if cfg.db_path:
+        run_migrations(cfg.db_path)
+        db_engine = create_db_engine(cfg.db_path, cfg.db_echo)
+
+    def _get_db_session():
+        if db_engine is None:
+            yield None
+        else:
+            yield from get_session(db_engine)
+
     # Startup healthcheck — daemon thread, ne bloque pas le démarrage
     threading.Thread(target=_log_ollama_startup, args=(cfg,), daemon=True).start()
 
@@ -97,6 +112,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def runtime_info() -> RuntimeInfoResponse:
         payload = build_runtime_info(cfg)
         return RuntimeInfoResponse(**payload.__dict__)
+
+    @app.get("/db/health", response_model=DbHealthResponse)
+    def db_health(session=Depends(_get_db_session)) -> DbHealthResponse:
+        if session is None:
+            return DbHealthResponse(ok=False, schema_version="none", app_settings_count=0)
+        try:
+            from sqlalchemy import text
+            from sqlmodel import select
+
+            row = session.execute(text("SELECT version_num FROM alembic_version")).first()
+            schema_version = row[0] if row else "none"
+            count = len(session.exec(select(AppSettings)).all())
+            return DbHealthResponse(ok=True, schema_version=schema_version, app_settings_count=count)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[VIVI:DB] /db/health query failed — {exc}", file=sys.stderr)
+            return DbHealthResponse(ok=False, schema_version="error", app_settings_count=0)
 
     @app.get("/knowledge/search", response_model=KnowledgeSearchResponse)
     def knowledge_search(q: str = Query(...), top_k: int | None = Query(default=None)) -> KnowledgeSearchResponse:

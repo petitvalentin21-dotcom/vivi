@@ -72,6 +72,39 @@ Règles importantes :
 - `.env` est local et ignoré par Git.
 - `.env.example` est versionné et ne doit contenir aucun secret.
 
+## Base de données
+
+VIVI utilise SQLite + SQLModel + Alembic pour les données structurées (préférences, sessions, etc.).
+
+Le fichier BDD est créé automatiquement au démarrage du backend si `VIVI_DB_PATH` est configuré.
+
+**Appliquer les migrations manuellement** (depuis la racine du projet) :
+
+```bash
+alembic upgrade head
+```
+
+**Générer une nouvelle migration après modification des modèles** :
+
+```bash
+alembic revision --autogenerate -m "description_courte"
+alembic upgrade head
+```
+
+**Revenir à l'état initial** :
+
+```bash
+alembic downgrade base
+```
+
+**Vérifier la version de schéma active** :
+
+```bash
+alembic current
+```
+
+**Smoke test DB** : `GET /db/health` retourne `{ok, schema_version, app_settings_count}`.
+
 ## Tests
 
 Tests automatisés :

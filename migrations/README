@@ -1,0 +1,18 @@
+VIVI — Alembic migrations
+
+Commandes courantes (depuis la racine du projet) :
+
+  Appliquer toutes les migrations :
+    alembic upgrade head
+
+  Revenir à l'état initial :
+    alembic downgrade base
+
+  Générer une nouvelle migration (autogenerate) :
+    alembic revision --autogenerate -m "description_courte"
+
+  Voir l'historique :
+    alembic history
+
+  Voir la révision courante de la BDD :
+    alembic current

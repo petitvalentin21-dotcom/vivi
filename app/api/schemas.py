@@ -138,3 +138,9 @@ class ConversationExportResponse(BaseModel):
     exported: bool
     relative_path: str
     filename: str
+
+
+class DbHealthResponse(BaseModel):
+    ok: bool
+    schema_version: str
+    app_settings_count: int

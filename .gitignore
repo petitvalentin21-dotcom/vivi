@@ -266,3 +266,6 @@ dist/
 build/
 .next/
 .vite/
+
+# base de données vivi
+data/db/*.db*

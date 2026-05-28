@@ -20,6 +20,9 @@ class Settings:
     external_providers_enabled: bool = False
     log_encryption_key: str = field(default_factory=lambda: os.environ.get("VIVI_LOG_ENCRYPTION_KEY", ""))
     session_log_path: str = "data/sessions"
+    # Database — empty string disables DB initialization (useful in tests that don't need it)
+    db_path: str = ""
+    db_echo: bool = False
 
     @property
     def auth_enabled(self) -> bool:
@@ -44,6 +47,8 @@ def load_settings() -> Settings:
         external_providers_enabled=_env_bool("VIVI_EXTERNAL_PROVIDERS_ENABLED", False),
         log_encryption_key=_env_str("VIVI_LOG_ENCRYPTION_KEY", ""),
         session_log_path=_env_str("VIVI_SESSION_LOG_PATH", "data/sessions"),
+        db_path=_env_str("VIVI_DB_PATH", "data/db/vivi.db"),
+        db_echo=_env_bool("VIVI_DB_ECHO", False),
     )
 
 
