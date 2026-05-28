@@ -34,6 +34,16 @@ FEAT-19 : module Stock :
 - `GET /stock/ingredients/alertes` — ingrédients sous seuil d'alerte ;
 - `GET /stock/resume` — vue synthétique batchs actifs + alertes.
 
+FEAT-20 : module Courses :
+
+- `POST/GET/PATCH/DELETE /courses/listes` — gestion des listes de courses avec soft delete ;
+- `POST /courses/listes/{id}/archiver` — archivage d'une liste ;
+- `GET /courses/listes/{id}/resume` — avancement (total, achetés, restants, %) ;
+- `POST/GET /courses/listes/{id}/items` — ajout et consultation des articles ;
+- `POST /courses/listes/{id}/tout-acheter` — marquer tous les articles achetés ;
+- `PATCH/DELETE /courses/items/{id}` — mise à jour et soft delete d'un article ;
+- `POST /courses/items/{id}/acheter` — toggle acheté (body : `{"valeur": true}`).
+
 ## Documentation de lancement
 
 Procédure complète de lancement, configuration, validation et diagnostic :
@@ -62,7 +72,7 @@ uvicorn app.api.server:app --host 127.0.0.1 --port 8000
 
 Ouvrir ensuite :
 
-- http://127.0.0.1:8000/
+- <http://127.0.0.1:8000/>
 
 Pour un accès LAN contrôlé depuis un téléphone, une tablette ou un autre PC du même Wi-Fi, utiliser le guide dédié et lancer explicitement le backend avec `--host 0.0.0.0`. Activer `VIVI_API_KEY` est recommandé en mode LAN.
 

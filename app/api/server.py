@@ -24,6 +24,7 @@ from app.api.schemas import (
     ObsidianInboxCreateResponse,
     RuntimeInfoResponse,
 )
+from app.api.courses import router as courses_router
 from app.api.recettes import router as recettes_router
 from app.api.stock import router as stock_router
 from app.config import Settings, ensure_runtime_dirs, load_settings
@@ -102,6 +103,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_exception_handler(Exception, unhandled_error_handler)
     app.include_router(recettes_router)
     app.include_router(stock_router)
+    app.include_router(courses_router)
 
     web_dir = Path(__file__).resolve().parents[1] / "web"
     app.mount("/web", StaticFiles(directory=web_dir), name="web")
