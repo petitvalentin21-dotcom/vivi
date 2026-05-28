@@ -31,7 +31,7 @@ Core behaviors:
 - supports batch cooking;
 - uses an internal recipe catalogue as primary source; LLM is a complement, not the sole source.
 
-Architecture principle: one conversational LLM core + specialized Python code modules. **Not a multi-LLM system.**
+Architecture principle: one conversational LLM core (local chat via Ollama) + specialized Python code modules. **Not a multi-LLM system.**
 
 The LLM contains no business logic. Business logic lives in Python modules.
 
@@ -108,7 +108,6 @@ Do not implement in the MVP:
 - Codex calls from VIVI;
 - native iOS/Android app (PWA is authorized — see §9);
 - fallback to external providers (OpenAI, Mammouth, etc.);
-- provider registry;
 - multi-provider routing;
 - vector database;
 - embeddings-based retrieval;
@@ -123,39 +122,36 @@ These topics may be documented as post-MVP, but must not complicate MVP implemen
 
 Note: the **Repas module** is authorized — it is a Python code module, not an agent.
 
+Note: Ollama is now the active MVP provider since FEAT-16. LM Studio is no longer used.
+
 ---
 
-## 7. Ollama provider
+## 7. Ollama provider rule
 
-Ollama is the primary LLM provider.
-
-Primary model: `mistral` (14B Q4_K_M variant)
-Fallback model: `qwen` 14B (if primary unavailable)
+Ollama is the MVP provider since FEAT-16.
 
 Allowed:
 
-- Ollama local OpenAI-compatible API;
-- configurable base URL and model name;
+- Ollama local API;
+- configurable base URL;
+- configurable model;
 - healthcheck;
 - chat completion;
-- streaming responses;
 - safe provider errors;
-- tests using mocks or fake clients.
+- tests using mocks.
 
 Default values:
 
-- `VIVI_OLLAMA_BASE_URL=http://localhost:11434/v1`
-- `VIVI_LLM_MODEL=mistral`
+- `VIVI_OLLAMA_BASE_URL=http://localhost:11434`
 - `VIVI_LLM_TIMEOUT_SECONDS=60`
 
 Do not add:
 
 - ProviderRegistry;
 - multi-provider fallback;
-- external provider implementations (OpenAI, Mammouth);
+- OpenAI implementation;
+- benchmark routing;
 - automatic model selection.
-
-The code may be kept compatible with future providers via interface abstraction, but must not implement them now.
 
 ---
 
@@ -167,25 +163,21 @@ Tooling: `uv` + `ruff` + `pyright` + `pytest`.
 
 Test coverage target: ≥70% on business modules (`meals/`, `llm/`, `knowledge/`).
 
-Expected structure:
+Expected modules:
 
 ```text
-backend/
-  app/
-    api/
-    llm/
-    meals/          # Repas domain module
-    knowledge/
-    sessions/
-    runtime/
-    core/
-      prompts/      # versioned prompts (Markdown)
-      tools/        # tool dispatcher and definitions
-  tests/
-  scripts/
-data/
+app/
+  api/
+  llm/          # OllamaClient
+  knowledge/
+  meals/
+    recettes/   # FEAT-18 — CRUD recettes
+    stock/      # FEAT-19 — Batch + IngredientBase
+  db/           # FEAT-17 — SQLite + Alembic
+  sessions/
   runtime/
-  db/
+tests/
+migrations/
 ```
 
 Persistence:
@@ -194,17 +186,18 @@ Persistence:
 - SQLCipher post-MVP;
 - restic encrypted backups from MVP.
 
-Core MVP endpoints:
+Active endpoints:
 
 - `GET /health`
 - `GET /runtime/info`
 - `POST /chat`
-- `GET /sessions`
-- `GET /sessions/{session_id}`
-- `DELETE /sessions/{session_id}`
-- `GET /meals/suggest`
-- `POST /meals/plan`
-- `GET /shopping/list`
+- `GET /knowledge/search`
+- `POST /obsidian/inbox`
+- `POST /conversation/export`
+- `/recettes` — 6 endpoints (FEAT-18)
+- `/stock`    — 13 endpoints (FEAT-19)
+
+Current test count: 329 passed (`pytest tests/ -q`)
 
 Implement progressively by FEAT. Do not add an orchestrator layer until basic chat + Repas MVP is validated.
 
@@ -304,6 +297,16 @@ After each significant FEAT, create a note:
 - content: summary, modified files, test validation, result, method note if relevant.
 
 `tmp/` is scratch space only — transient, never committed, overwritten freely.
+
+Codex creates the run log automatically after each FEAT without waiting to be asked.
+
+Steps:
+
+1. Create `knowledge_vault/05_runs/YYYY-MM-DD_FEAT-NN-slug.md` with standard frontmatter
+2. Stage it: `git add knowledge_vault/05_runs/...`
+3. Report: "Run log created and staged: `knowledge_vault/05_runs/...`"
+
+The commit-msg hook blocks any `FEAT*` commit without a staged run log.
 
 ---
 
