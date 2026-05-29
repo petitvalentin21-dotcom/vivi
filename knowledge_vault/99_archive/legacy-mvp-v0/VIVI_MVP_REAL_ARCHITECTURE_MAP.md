@@ -1,9 +1,9 @@
----
+﻿---
 title: VIVI MVP — Architecture réelle
-status: active
+status: archived
 doc_type: architecture
 scope: mvp
-llm_index: true
+llm_index: false
 llm_role: architecture
 llm_priority: high
 updated: 2026-05-12

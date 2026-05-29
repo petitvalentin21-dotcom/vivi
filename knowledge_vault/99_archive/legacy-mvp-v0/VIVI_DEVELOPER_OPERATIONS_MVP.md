@@ -1,9 +1,9 @@
----
+﻿---
 title: VIVI MVP — Guide développeur opérationnel
-status: active
+status: archived
 doc_type: developer-guide
 scope: mvp
-llm_index: true
+llm_index: false
 llm_role: developer_guide
 llm_priority: high
 updated: 2026-05-12

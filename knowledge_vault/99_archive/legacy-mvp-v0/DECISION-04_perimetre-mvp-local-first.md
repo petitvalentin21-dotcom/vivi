@@ -1,9 +1,9 @@
----
+﻿---
 title: Décision — Périmètre MVP local-first et non-objectifs
-status: validated
+status: archived
 doc_type: decision
 scope: mvp
-llm_index: true
+llm_index: false
 llm_role: decision
 llm_priority: high
 updated: 2026-05-17

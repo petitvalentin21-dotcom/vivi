@@ -1,9 +1,9 @@
----
+﻿---
 title: VIVI — Backend MVP Spec v0.1
-status: validated
+status: archived
 doc_type: architecture
 scope: mvp
-llm_index: true
+llm_index: false
 llm_role: architecture
 llm_priority: high
 updated: 2026-05-12

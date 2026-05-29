@@ -1,9 +1,9 @@
----
+﻿---
 title: VIVI MVP — Cadrage produit v0.1
-status: validated
+status: archived
 doc_type: product
 scope: mvp
-llm_index: true
+llm_index: false
 llm_role: source_of_truth
 llm_priority: high
 updated: 2026-05-12

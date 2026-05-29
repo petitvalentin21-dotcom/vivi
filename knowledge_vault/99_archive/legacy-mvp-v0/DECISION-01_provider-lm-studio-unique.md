@@ -1,9 +1,9 @@
----
+﻿---
 title: Décision — Provider LM Studio unique, pas de fallback cloud
-status: validated
+status: archived
 doc_type: decision
 scope: mvp
-llm_index: true
+llm_index: false
 llm_role: decision
 llm_priority: high
 updated: 2026-05-17
