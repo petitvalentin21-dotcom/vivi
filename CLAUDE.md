@@ -79,6 +79,66 @@ Jamais d'exception sans validation humaine explicite.
 
 ---
 
+## Conventions de développement
+
+### Run logs (CONVENTION STRICTE — pas de variation autorisée)
+
+Après chaque FEAT, créer un run log à un emplacement strictement défini.
+
+**Chemin obligatoire** : `knowledge_vault/05_runs/`
+**Nom de fichier obligatoire** : `YYYY-MM-DD_FEAT-NN-slug.md`
+
+Exemple correct :
+
+```text
+knowledge_vault/05_runs/2026-05-28_FEAT-21-module-preferences.md
+```
+
+**Chemins interdits** (jamais, même temporairement) :
+
+- ❌ `docs/run_logs/`
+- ❌ `tmp/`
+- ❌ Racine du repo
+- ❌ Tout autre dossier que `knowledge_vault/05_runs/`
+
+**Frontmatter obligatoire** — copier-coller ce template exact, ne rien réinventer :
+
+```yaml
+---
+title: Run Log — FEAT-NN
+status: done
+doc_type: run
+scope: mvp
+llm_index: false
+llm_role: run_log
+llm_priority: low
+updated: YYYY-MM-DD
+tags:
+  - vivi
+  - mvp
+  - run
+  - <module-tag>
+---
+```
+
+Remplacer `FEAT-NN`, `YYYY-MM-DD` et `<module-tag>` par les valeurs réelles. Ne pas omettre `llm_index: false` (sinon le run log pollue le RAG).
+
+**Sections minimales obligatoires** (dans cet ordre, titres H2 stricts) :
+
+1. `## Résumé` — 1 à 3 phrases
+2. `## Fichiers créés` — liste à puces, chemins relatifs
+3. `## Fichiers modifiés` — liste à puces, chemins relatifs
+4. `## Validation` — commande pytest + résultat exact (`N passed`)
+5. `## Résultat` — état final fonctionnel
+
+Si une section est vide, écrire `_aucun_` sous le titre. Ne pas la supprimer.
+
+Le run log doit être **stagé avant** le commit. Le hook `commit-msg` bloque tout commit `feat*` / `FEAT*` sans fichier `knowledge_vault/05_runs/` stagé.
+
+En cas d'hésitation sur le chemin : c'est `knowledge_vault/05_runs/`. Aucune autre option.
+
+---
+
 ## Évolution de ce fichier
 
 `CLAUDE.md` et `.claude/*` ne sont jamais modifiés par un agent.

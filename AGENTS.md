@@ -286,27 +286,51 @@ For normal implementation tasks, write execution reports to `tmp/`.
 
 ---
 
-## 13. Run history policy
+## 13. Run history policy (STRICT)
 
-The canonical run history lives in `knowledge_vault/05_runs/`.
+The canonical run history lives in `knowledge_vault/05_runs/`. No other path is acceptable.
 
-After each significant FEAT, create a note:
+After each significant FEAT, create one file:
 
-- filename: `YYYY-MM-DD_FEAT-short-name.md`
-- frontmatter: `doc_type: run`, `llm_index: false`, `llm_priority: low`
-- content: summary, modified files, test validation, result, method note if relevant.
+- **Path**: `knowledge_vault/05_runs/`
+- **Filename**: `YYYY-MM-DD_FEAT-NN-slug.md` (e.g. `2026-05-28_FEAT-21-module-preferences.md`)
+- **Frontmatter** (exact template, copy as-is):
 
-`tmp/` is scratch space only — transient, never committed, overwritten freely.
+```yaml
+---
+title: Run Log — FEAT-NN
+status: done
+doc_type: run
+scope: mvp
+llm_index: false
+llm_role: run_log
+llm_priority: low
+updated: YYYY-MM-DD
+tags:
+  - vivi
+  - mvp
+  - run
+  - <module-tag>
+---
+```
 
-Codex creates the run log automatically after each FEAT without waiting to be asked.
+- **Required H2 sections (in this order)**:
+  1. `## Résumé`
+  2. `## Fichiers créés`
+  3. `## Fichiers modifiés`
+  4. `## Validation`
+  5. `## Résultat`
 
-Steps:
+Forbidden locations (no exception):
 
-1. Create `knowledge_vault/05_runs/YYYY-MM-DD_FEAT-NN-slug.md` with standard frontmatter
-2. Stage it: `git add knowledge_vault/05_runs/...`
-3. Report: "Run log created and staged: `knowledge_vault/05_runs/...`"
+- ❌ `docs/run_logs/`
+- ❌ `tmp/`
+- ❌ Repo root
+- ❌ Any directory other than `knowledge_vault/05_runs/`
 
-The commit-msg hook blocks any `FEAT*` commit without a staged run log.
+`llm_index: false` is mandatory. `tmp/` is scratch only, never committed.
+
+The `commit-msg` hook blocks any `feat*` commit without a `knowledge_vault/05_runs/` file staged.
 
 ---
 

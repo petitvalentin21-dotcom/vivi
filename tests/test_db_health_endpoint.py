@@ -31,7 +31,7 @@ def test_db_health_with_migrated_db(tmp_path) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["ok"] is True
-    assert body["schema_version"] == "0004"  # current head
+    assert body["schema_version"] == "0005"  # current head
     assert body["app_settings_count"] == 0
 
 
