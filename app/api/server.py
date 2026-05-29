@@ -28,6 +28,7 @@ from app.api.courses import router as courses_router
 from app.api.preferences import router as preferences_router
 from app.api.recettes import router as recettes_router
 from app.api.stock import router as stock_router
+from app.tools import router as tools_router
 from app.config import Settings, ensure_runtime_dirs, load_settings
 from app.db.connection import create_db_engine, get_session, run_migrations
 from app.db.models import AppSettings
@@ -106,6 +107,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(stock_router)
     app.include_router(courses_router)
     app.include_router(preferences_router)
+    app.include_router(tools_router)
 
     web_dir = Path(__file__).resolve().parents[1] / "web"
     app.mount("/web", StaticFiles(directory=web_dir), name="web")

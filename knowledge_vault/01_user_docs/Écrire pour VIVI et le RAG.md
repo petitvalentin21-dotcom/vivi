@@ -6,7 +6,7 @@ scope: mvp
 llm_index: true
 llm_role: developer_guide
 llm_priority: high
-updated: 2026-05-12
+updated: 2026-05-28
 tags:
   - vivi
   - mvp
@@ -43,7 +43,7 @@ Bon:
 
 - `VIVI MVP — Architecture réelle`
 - `VIVI — Gouvernance Obsidian et qualité retrieval`
-- `Run Log — FEAT-03 — Chat LM Studio`
+- `Run Log — FEAT-16 — Ollama provider`
 
 À éviter:
 
@@ -65,7 +65,7 @@ Exemple:
 ```markdown
 ## Résumé
 
-Cette note décrit l'architecture réelle du backend VIVI MVP: FastAPI, LM Studio, RAG lexical, sources visibles, runtime info et mémoire de session simple.
+Cette note décrit l'architecture réelle du backend VIVI MVP: FastAPI, Ollama, modules Repas, RAG lexical, sources visibles, runtime info et mémoire de session simple.
 ```
 
 ## Sections courtes
@@ -89,7 +89,7 @@ Le RAG lexical retrouve mieux les documents quand les mêmes concepts gardent le
 
 Utiliser régulièrement:
 
-- `LM Studio`
+- `Ollama`
 - `provider local`
 - `RAG lexical`
 - `Obsidian`
@@ -98,6 +98,7 @@ Utiliser régulièrement:
 - `session memory`
 - `API key`
 - `local-first`
+- `repas` / `recettes` / `stock` / `courses` / `préférences`
 
 Éviter d'alterner sans raison entre plusieurs synonymes comme `mémoire`, `state`, `historique`, `contexte durable` pour parler d'une même chose.
 
@@ -122,7 +123,7 @@ Bon:
 ```markdown
 ## Décision
 
-Le MVP utilise LM Studio comme unique provider local. Aucun fallback cloud n'est ajouté.
+Le MVP utilise Ollama comme provider local (depuis FEAT-16). Aucun fallback cloud n'est ajouté.
 ```
 
 À éviter:
@@ -166,10 +167,8 @@ Relier les notes importantes aux hubs.
 Exemples:
 
 - [[01_user_docs/VIVI_MVP_DOC_HUB]]
-- [[00_product/VIVI_MVP_CADRAGE_v0.1]]
-- [[02_architecture/VIVI — Backend MVP Spec v0.1]]
+- [[00_product/VIVI_MVP_REPAS_v1.0]]
 - [[02_architecture/VIVI — Frontmatter documentaire MVP]]
-- [[00_navigation/VIVI — Taxonomie documentaire MVP]]
 
 Les liens aident l'humain à naviguer. Les titres liés aident aussi le retrieval lexical.
 
@@ -219,15 +218,15 @@ Frontmatter recommandé:
 
 ```yaml
 ---
-title: Décision — Provider LM Studio unique
+title: Décision — Provider Ollama unique
 status: validated
 doc_type: decision
 scope: mvp
 llm_index: true
 llm_role: decision
 llm_priority: high
-updated: 2026-05-12
-tags: [vivi, mvp, decision, lm-studio]
+updated: 2026-05-28
+tags: [vivi, mvp, decision, ollama]
 ---
 ```
 
